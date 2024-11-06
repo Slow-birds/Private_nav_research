@@ -421,7 +421,8 @@ def get_html(
                             margin: auto;
                             margin-bottom: 20px;
                             border-collapse: collapse;
-                            width: 80%;
+                            width: 1500px;
+                            text-align: center;
                         }}
                     table, th, td {{
                             border: 1px solid #ddd;
