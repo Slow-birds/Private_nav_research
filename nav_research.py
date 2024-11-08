@@ -16,7 +16,7 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
 plt.rcParams['axes.unicode_minus'] = False
 
 class NavResearch:
-    def __init__(self, nav_data_path, fund_name, benchmark_code, benchmark_name, post_viewpoint_content):
+    def __init__(self, nav_data_path, fund_name, benchmark_code, benchmark_name, post_viewpoint_content, threshold):
         self.nav_data_path = nav_data_path
         self.fund_name = fund_name
         self.benchmark_code = benchmark_code
@@ -24,7 +24,7 @@ class NavResearch:
         self.post_viewpoint_content = post_viewpoint_content
         self.freq = None
         self.risk_free_rate = 0.02
-        self.threshold = 0.05
+        self.threshold = threshold
 
     # df_nav, df_return, df_drawdown
     def get_data(self):
