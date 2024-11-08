@@ -5,7 +5,7 @@ import matplotlib.dates as mdates
 import copy
 from WindPy import w
 w.start()
-from nav_function import *
+from function import *
 import pyecharts.options as opts
 from pyecharts.charts import Line
 from pyecharts.globals import ThemeType
