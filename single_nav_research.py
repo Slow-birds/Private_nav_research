@@ -324,7 +324,16 @@ class NavResearch:
             + self.fund_name
             + "_nav_analysis"
         )
-        with open(html_name + ".html", "w", encoding="utf-8") as f:
+        folder_path = 'E:\桌面文件\Private_nav_research\docs\主观多头'  # 您可以根据需要更改此路径
+        # 构建完整文件路径
+        file_path = f"{folder_path}\{html_name}.html"
+    
+        # 确保文件夹存在（如果不存在则创建）
+        import os
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(html)
 
     def get_plot(self):
@@ -361,4 +370,8 @@ class NavResearch:
         ax2.grid()
         return plt.show()
 
-
+if __name__ == "__main__":
+    demo = NavResearch(r"data_fund.xlsx","聚宽","H11009.CSI","中证综合债","",-0.003)
+    demo.get_data()
+    demo.get_analysis_table()
+    demo.get_html()
