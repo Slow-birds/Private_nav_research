@@ -235,7 +235,6 @@ class NavResearch:
                     fund_drawdown_percentage,
                 )
             )
-
         data_drawdown = pd.DataFrame(
             drawdowns, columns=["回撤开始时间", "回撤结束时间", "回补结束时间", "回撤"]
         )
