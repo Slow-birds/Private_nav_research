@@ -5,7 +5,7 @@ import matplotlib.dates as mdates
 import copy
 from WindPy import w
 w.start()
-from nav_function import *
+from function import *
 import pyecharts.options as opts
 from pyecharts.charts import Line
 from pyecharts.globals import ThemeType
@@ -16,7 +16,7 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
 plt.rcParams['axes.unicode_minus'] = False
 
 class NavResearch:
-    def __init__(self, nav_data_path, fund_name, benchmark_code, benchmark_name, post_viewpoint_content):
+    def __init__(self, nav_data_path, fund_name, benchmark_code, benchmark_name, post_viewpoint_content, threshold):
         self.nav_data_path = nav_data_path
         self.fund_name = fund_name
         self.benchmark_code = benchmark_code
@@ -24,7 +24,7 @@ class NavResearch:
         self.post_viewpoint_content = post_viewpoint_content
         self.freq = None
         self.risk_free_rate = 0.02
-        self.threshold = 0.05
+        self.threshold = threshold
 
     # df_nav, df_return, df_drawdown
     def get_data(self):
@@ -235,7 +235,6 @@ class NavResearch:
                     fund_drawdown_percentage,
                 )
             )
-
         data_drawdown = pd.DataFrame(
             drawdowns, columns=["回撤开始时间", "回撤结束时间", "回补结束时间", "回撤"]
         )
@@ -325,7 +324,16 @@ class NavResearch:
             + self.fund_name
             + "_nav_analysis"
         )
-        with open(html_name + ".html", "w", encoding="utf-8") as f:
+        folder_path = 'E:\桌面文件\Private_nav_research\docs\主观多头'  # 您可以根据需要更改此路径
+        # 构建完整文件路径
+        file_path = f"{folder_path}\{html_name}.html"
+    
+        # 确保文件夹存在（如果不存在则创建）
+        import os
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(html)
 
     def get_plot(self):
@@ -362,4 +370,8 @@ class NavResearch:
         ax2.grid()
         return plt.show()
 
-
+if __name__ == "__main__":
+    demo = NavResearch(r"data_fund.xlsx","聚宽","H11009.CSI","中证综合债","",-0.003)
+    demo.get_data()
+    demo.get_analysis_table()
+    demo.get_html()
