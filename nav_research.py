@@ -16,9 +16,10 @@ plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
 plt.rcParams['axes.unicode_minus'] = False
 
 class NavResearch:
-    def __init__(self, nav_data_path, strategy, fund_name, benchmark_code, benchmark_name, post_viewpoint_content, threshold):
+    def __init__(self, nav_data_path, strategy, fund_code, fund_name, benchmark_code, benchmark_name, post_viewpoint_content, threshold):
         self.nav_data_path = nav_data_path
         self.strategy = strategy
+        self.fund_code = fund_code
         self.fund_name = fund_name
         self.benchmark_code = benchmark_code
         self.benchmark_name = benchmark_name
@@ -30,11 +31,11 @@ class NavResearch:
     # df_nav, df_return, df_drawdown
     def get_data(self):
         # nav data
-        nav_df = pd.read_excel(self.nav_data_path, sheet_name=self.fund_name)
+        nav_df = pd.read_csv(self.nav_data_path)
         nav_df = nav_df[["日期", "单位净值", "累计净值"]].rename(
             columns={"日期": "date", "单位净值": "nav_unit", "累计净值": "nav_accumulated"}
         )
-        nav_df["date"] = pd.to_datetime(nav_df["date"])
+        nav_df["date"] = pd.to_datetime(nav_df["date"], format="%Y%m%d")
         nav_df = nav_df.sort_values(by="date")
         nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"][0]
         nav_df["nav_accumulated"] = nav_df["nav_accumulated"] / nav_df["nav_accumulated"][0]

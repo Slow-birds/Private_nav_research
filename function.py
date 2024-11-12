@@ -33,7 +33,8 @@ def infer_frequency(df_nav):
     elif (np.diff(date) >= np.timedelta64(5, "D")).mean() > 0.75:
         return "W"
     else:
-        raise ValueError("无法推断频率")
+        print("无法推断频率,自动转为周度")
+        return "W"
 
 
 def get_nav_lines(df, fund_name, benchmark_name):
