@@ -1,6 +1,10 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pathlib import Path
+import datetime
+from typing import Union
+from pandas import Series, Timestamp
 import matplotlib.dates as mdates
 import copy
 from pyecharts.charts import Line
@@ -8,6 +12,41 @@ import pyecharts.options as opts
 from WindPy import w
 
 w.start()
+
+
+def load_data(data_path):
+    data_path = Path(data_path)
+    file_extension = data_path.suffix.lower()
+    if file_extension in ['.csv']:
+        data = pd.read_csv(data_path, encoding='gbk')
+    elif file_extension in ['.xls', '.xlsx']:
+        data = pd.read_excel(data_path)
+    else:
+        print("非CSV或Excel格式的文件")
+    return data
+
+
+def format_date(
+    date: Union[datetime.datetime, datetime.date, np.datetime64, int, str]
+) -> Series | Timestamp:
+    """
+    输出格式为 pd.Timestamp, 等同于 np.datetime64
+    如果想要str格式, 即调用format_date(***).strftime('%Y-%m-%d')
+    """
+    if isinstance(date, datetime.datetime):
+        return pd.to_datetime(date.date())
+    elif isinstance(date, datetime.date):
+        return pd.to_datetime(date)
+    elif isinstance(date, np.datetime64):
+        return pd.to_datetime(date)
+    elif isinstance(date, int):
+        date = pd.to_datetime(date, format="%Y%m%d")
+        return date
+    elif isinstance(date, str):
+        date = pd.to_datetime(date)
+        return pd.to_datetime(date.date())
+    else:
+        raise TypeError("date should be str, int or timestamp!")
 
 
 # nav_adjusted
@@ -43,8 +82,8 @@ def get_nav_lines(df, fund_name, benchmark_name):
     ys_data = (
         (df.drop(columns=["date", "nav_unit", "nav_accumulated"], axis=1) - 1) * 100
     ).round(2)
-    min_data = (ys_data.values.min() - 0.1*abs(ys_data.values.min())).round()
-    max_data = (ys_data.values.max() + 0.1*abs(ys_data.values.max())).round()
+    min_data = (ys_data.values.min() - 0.1 * abs(ys_data.values.min())).round()
+    max_data = (ys_data.values.max() + 0.1 * abs(ys_data.values.max())).round()
     names = [
         f"{fund_name}_累计收益(%)",
         f"{benchmark_name}_累计收益(%)",
@@ -82,7 +121,7 @@ def get_drawdown_lines(df, fund_name, benchmark_name):
     x_data = df["date"].dt.strftime("%Y-%m-%d").tolist()
     ys_data = ((df.drop("date", axis=1)) * 100).round(2)
 
-    min_data = (ys_data.values.min() - 0.1*abs(ys_data.values.min())).round(0)
+    min_data = (ys_data.values.min() - 0.1 * abs(ys_data.values.min())).round(0)
     max_data = ys_data.values.max().round(0)
     names = [
         f"{fund_name}_回撤(%)",
