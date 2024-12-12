@@ -43,17 +43,8 @@ class NavResearch:
     def get_data(self):
         # nav data
         nav_df = load_data(self.nav_data_path)
-        nav_df = nav_df[["日期", "单位净值", "累计净值"]].rename(
-            columns={
-                "日期": "date",
-                "单位净值": "nav_unit",
-                "累计净值": "nav_accumulated",
-            }
-        )
-        nav_df["date"] = pd.to_datetime(nav_df["date"], format="%Y-%m-%d")
-        nav_df = nav_df.sort_values(by="date")
+        nav_df = get_standardized_data(nav_df)
         # 净值归一
-        nav_df = get_nav_adjusted(nav_df)
         nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"][0]
         nav_df["nav_accumulated"] = (
             nav_df["nav_accumulated"] / nav_df["nav_accumulated"][0]
@@ -426,8 +417,8 @@ class NavResearch:
             + self.fund_name
             + "_nav_analysis"
         )
-        # folder_path = rf"C:\Users\17820\Desktop\VScode\Private_nav_research\docs\{self.strategy}"
-        folder_path = rf"E:\桌面文件\Vscode\Private_nav_research\docs\{self.strategy}"
+        folder_path = rf"C:\Users\17820\Desktop\VScode\Private_nav_research\docs\{self.strategy}"
+        # folder_path = rf"E:\桌面文件\Vscode\Private_nav_research\docs\{self.strategy}"
         # 构建完整文件路径
         file_path = f"{folder_path}\\{html_name}.html"
         # 确保文件夹存在（如果不存在则创建）
