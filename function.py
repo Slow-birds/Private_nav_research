@@ -3,7 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 import datetime
-from typing import Union
+from typing import Union, Tuple
 from pandas import Series, Timestamp
 import matplotlib.dates as mdates
 import copy
@@ -13,12 +13,64 @@ from WindPy import w
 
 w.start()
 
+def generate_trading_date(
+    begin_date: np.datetime64 = np.datetime64("2015-01-01"),
+    end_date: np.datetime64 = np.datetime64("today"),
+) -> Tuple[np.ndarray[np.datetime64]]:
+    assert begin_date >= np.datetime64(
+        "2015-01-04"
+    ), "系统预设起始日期仅支持2015年1月4日以后"
+    with open(
+        Path(__file__).resolve().parent.joinpath("Chinese_special_holiday.txt"), "r"
+    ) as f:
+        chinese_special_holiday = pd.Series(
+            [date.strip() for date in f.readlines()]
+        ).values.astype("datetime64[D]")
+    working_date = pd.date_range(begin_date, end_date, freq="B").values.astype(
+        "datetime64[D]"
+    )
+    trading_date = np.setdiff1d(working_date, chinese_special_holiday)
+    trading_date_df = pd.DataFrame(working_date, columns=["working_date"])
+    trading_date_df["is_friday"] = trading_date_df["working_date"].apply(
+        lambda x: x.weekday() == 4
+    )
+    trading_date_df["trading_date"] = (
+        trading_date_df["working_date"]
+        .apply(lambda x: x if x in trading_date else np.nan)
+        .ffill()
+    )
+    return (
+        trading_date,
+        np.unique(
+            trading_date_df[trading_date_df["is_friday"]]["trading_date"].values[1:]
+        ).astype("datetime64[D]"),
+    )
+
+def match_data(
+    nav_data: pd.DataFrame,
+    trade_date: np.ndarray[np.datetime64],
+) -> pd.DataFrame:
+    """
+    如果trade_date 的日期不在nav_data中, 则用前一个交易日的数据填充
+    特殊的, 如果trade_date的开始日期早于nav_data的开始日期, 则需要对trade_date进行截取
+    """
+    first_row = nav_data.iloc[[0]].copy()
+    trade_date = trade_date[trade_date >= nav_data["date"].min()]
+    nav_data = nav_data.set_index("date")
+    nav_data = nav_data.reindex(trade_date, method="ffill")
+    nav_data = nav_data.reset_index(drop=False)
+    combined = pd.concat([nav_data, first_row], ignore_index=True)
+    combined = combined.sort_values(by="date")
+    combined_unique = combined.drop_duplicates()
+    combined_unique = combined_unique.reset_index(drop=True)
+    return combined_unique
+
 
 def load_data(data_path):
     data_path = Path(data_path)
     file_extension = data_path.suffix.lower()
     if file_extension in ['.csv']:
-        data = pd.read_csv(data_path, encoding='gbk')
+        data = pd.read_csv(data_path, encoding='utf-8')
     elif file_extension in ['.xls', '.xlsx']:
         data = pd.read_excel(data_path)
     else:
@@ -64,7 +116,7 @@ def get_nav_adjusted(nav_df):
     return nav_df_copy
 
 
-def infer_frequency(df_nav):
+def infer_frequency(fund_name, df_nav):
     date = df_nav["date"].values
     # 如果大部分日期间隔为 1 天，那么数据可能是日度的
     if (np.diff(date) == np.timedelta64(1, "D")).mean() > 0.75:
@@ -72,7 +124,7 @@ def infer_frequency(df_nav):
     elif (np.diff(date) >= np.timedelta64(5, "D")).mean() > 0.75:
         return "W"
     else:
-        print("无法推断频率,自动转为周度")
+        print(f"{fund_name}无法推断频率,自动转为周度")
         return "W"
 
 
@@ -165,3 +217,16 @@ def get_max_drawdown(df_nav, column_name):
     ) / df_nav[f"{column_name}_max_so_far"]
     max_drawdown = df_nav[f"{column_name}_drawdown"].min()
     return max_drawdown
+
+# import os
+# data = pd.read_excel(r"C:\Users\17820\Desktop\Private_nav_research\nav_data\私募产品净值数据.xlsx")
+# code = list(data["产品代码"].unique())
+# folder_name = 'data'
+# if not os.path.exists(folder_name):
+#     os.makedirs(folder_name)
+# for i in code:
+#     data_i = data[data["产品代码"]==i]
+#     file_name = os.path.join(folder_name, f'{i}.csv')
+#     data_i.to_csv(file_name, index=False)
+# basic_info = pd.read_excel(r"C:\Users\17820\Desktop\Private_nav_research\nav_data\产品目录.xlsx")
+# basic_info['产品代码'] = basic_info['产品代码'].astype(str)
