@@ -52,11 +52,6 @@ class NavResearch:
         )
         nav_df["date"] = pd.to_datetime(nav_df["date"], format="%Y-%m-%d")
         nav_df = nav_df.sort_values(by="date")
-        nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"][0]
-        nav_df["nav_accumulated"] = (
-            nav_df["nav_accumulated"] / nav_df["nav_accumulated"][0]
-        )
-        nav_df = get_nav_adjusted(nav_df)
         # start_date, end_date
         start_date = pd.Timestamp(nav_df["date"].min()).strftime("%Y-%m-%d")
         end_date = pd.Timestamp(nav_df["date"].max()).strftime("%Y-%m-%d")
@@ -72,6 +67,12 @@ class NavResearch:
             nav_df = match_data(nav_df, trade_date)
         else:  # freq is "W"
             nav_df = match_data(nav_df, weekly_trade_date)
+        # 净值归一
+        nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"][0]
+        nav_df["nav_accumulated"] = (
+            nav_df["nav_accumulated"] / nav_df["nav_accumulated"][0]
+        )
+        nav_df = get_nav_adjusted(nav_df)
         # benchmark data
         error_code, benchmark_df = w.wsd(
             self.benchmark_code,
