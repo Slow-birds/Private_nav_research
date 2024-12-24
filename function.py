@@ -76,6 +76,7 @@ def get_standardized_data(nav_df):
     nav_df["date"] = pd.to_datetime(nav_df["date"], format="%Y-%m-%d")
     nav_df = nav_df.sort_values(by="date", ascending=True, ignore_index=True)
     nav_df = get_nav_adjusted(nav_df)
+    nav_df["nav_adjusted"] = round(nav_df["nav_adjusted"], 4)
     return nav_df
 
 def infer_frequency(fund_name, df_nav):
