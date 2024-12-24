@@ -74,7 +74,7 @@ def get_standardized_data(nav_df):
             }
         )
     nav_df["date"] = pd.to_datetime(nav_df["date"], format="%Y-%m-%d")
-    nav_df = nav_df.sort_values(by="date")
+    nav_df = nav_df.sort_values(by="date", ascending=True, ignore_index=True)
     nav_df = get_nav_adjusted(nav_df)
     return nav_df
 
