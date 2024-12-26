@@ -42,14 +42,9 @@ class NavResearch:
     # df_nav, df_return, df_drawdown
     def get_data(self):
         # nav data
-        nav_df = load_data(self.nav_data_path)
-        nav_df = get_standardized_data(nav_df)
+        nav_df = get_standardized_data(self.nav_data_path)
         # 净值归一
-        nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"][0]
-        nav_df["nav_accumulated"] = (
-            nav_df["nav_accumulated"] / nav_df["nav_accumulated"][0]
-        )
-        nav_df["nav_adjusted"] = nav_df["nav_adjusted"] / nav_df["nav_adjusted"][0]
+        nav_df = nav_df.div(nav_df.iloc[0])
         # 日期规范前的start_day, end_day
         start_day = pd.Timestamp(nav_df["date"].min()).strftime("%Y-%m-%d")
         end_day = pd.Timestamp(nav_df["date"].max()).strftime("%Y-%m-%d")

@@ -39,45 +39,60 @@ def format_date(
 
 
 # 加载数据
-def load_data(data_path):
-    data_path = Path(data_path)
-    file_extension = data_path.suffix.lower()
-    if file_extension in [".csv"]:
-        data = pd.read_csv(data_path, encoding="utf-8")
-    elif file_extension in [".xls", ".xlsx"]:
-        data = pd.read_excel(data_path)
+def load_data(df_path):
+    df_path = Path(df_path)
+    file_suffix = df_path.suffix
+    if file_suffix in [".csv"]:
+        df = pd.read_csv(df_path, encoding="utf-8")
+    elif file_suffix in [".xls", ".xlsx"]:
+        df = pd.read_excel(df_path)
     else:
         print("非CSV或Excel格式的文件")
-    return data
+    return df
 
-# nav_adjusted
+
+# 求复权净值(nav_adjusted)
 def get_nav_adjusted(nav_df):
     nav_df_copy = nav_df.copy()
-    nav_df_copy["nav_adjusted"] = np.nan
-    nav_df_copy.loc[0, "nav_adjusted"] = 1
+    nav_df_copy["复权净值"] = np.nan
+    nav_df_copy.loc[0, "复权净值"] = 1
     for i in range(1, len(nav_df_copy)):
         nav_adjusted_new = (
-            nav_df_copy.loc[i, "nav_accumulated"]
-            - nav_df_copy.loc[i - 1, "nav_accumulated"]
-        ) / nav_df_copy.loc[i - 1, "nav_unit"] + 1
-        nav_adjusted_new *= nav_df_copy.loc[i - 1, "nav_adjusted"]
-        nav_df_copy.loc[i, "nav_adjusted"] = nav_adjusted_new
+            nav_df_copy.loc[i, "累计净值"] - nav_df_copy.loc[i - 1, "累计净值"]
+        ) / nav_df_copy.loc[i - 1, "单位净值"] + 1
+        nav_adjusted_new *= nav_df_copy.loc[i - 1, "复权净值"]
+        nav_df_copy.loc[i, "复权净值"] = nav_adjusted_new
     return nav_df_copy
+
 
 # 净值数据标准化
 def get_standardized_data(nav_df):
-    nav_df = nav_df[["日期", "单位净值", "累计净值"]].rename(
-            columns={
-                "日期": "date",
-                "单位净值": "nav_unit",
-                "累计净值": "nav_accumulated",
-            }
-        )
-    nav_df["date"] = pd.to_datetime(nav_df["date"], format="%Y-%m-%d")
-    nav_df = nav_df.sort_values(by="date", ascending=True, ignore_index=True)
+    # 规范净值数据列名
+    if "净值日期" in nav_df.columns:
+        nav_df = nav_df.rename(columns={"净值日期": "日期"})
+    assert "日期" in nav_df.columns, "Error: 未找到日期列"
+    if "累计单位净值" in nav_df.columns:
+        nav_df = nav_df.rename(columns={"累计单位净值": "累计净值"})
+    assert "累计净值" in nav_df.columns, "Error: 未找到累计净值列"
+    # 检查是否有日期/累计净值为空的数据
+    assert nav_df["日期"].isnull().sum() == 0, "Error: 净值数据中存在日期为空的数据"
+    assert (
+        nav_df["累计净值"].isnull().sum() == 0
+    ), "Error: 净值数据中存在累计净值为空的数据"
+    # 检查是否有日期重复的数据
+    assert (
+        nav_df["日期"].duplicated(keep=False).sum() == 0
+    ), "Error: 净值数据中存在日期重复的数据"
+    # 标准化日期格式
+    if nav_df["日期"].dtype == "int":
+        nav_df["日期"] = pd.to_datetime(nav_df["日期"], format="%Y%m%d")
+    else:
+        nav_df["日期"] = pd.to_datetime(nav_df["日期"])
+    # 排序
+    nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
     nav_df = get_nav_adjusted(nav_df)
-    nav_df["nav_adjusted"] = round(nav_df["nav_adjusted"], 4)
     return nav_df
+
 
 def infer_frequency(fund_name, df_nav):
     date = df_nav["date"].values
@@ -224,6 +239,7 @@ def get_drawdown_lines(df, fund_name, benchmark_name):
     # line.render_notebook()
     return line
 
+
 def format_index(df: pd.DataFrame):
     x = df.index.values
     if x.dtype == "datetime64[ns]":
@@ -259,6 +275,7 @@ def get_line(df, title):
     )
     line.set_series_opts(linestyle_opts=opts.LineStyleOpts(width=2))
     return line
+
 
 # 暂时弃用
 # max_drawdown
