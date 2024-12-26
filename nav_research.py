@@ -23,7 +23,6 @@ class NavResearch:
         self,
         nav_data_path,
         strategy,
-        fund_code,
         fund_name,
         benchmark_code,
         benchmark_name,
@@ -31,7 +30,6 @@ class NavResearch:
     ):
         self.nav_data_path = nav_data_path
         self.strategy = strategy
-        self.fund_code = fund_code
         self.fund_name = fund_name
         self.benchmark_code = benchmark_code
         self.benchmark_name = benchmark_name
@@ -41,13 +39,15 @@ class NavResearch:
 
     # df_nav, df_return, df_drawdown
     def get_data(self):
-        # nav data
-        nav_df = get_standardized_data(self.nav_data_path)
-        # 净值归一
+        # 读取净值数据并标准化
+        nav_df = load_data(self.nav_data_path)
+        nav_df = get_standardized_data(nav_df)
+        nav_df.set_index("date", inplace=True)
         nav_df = nav_df.div(nav_df.iloc[0])
+        nav_df.reset_index(inplace=True)
         # 日期规范前的start_day, end_day
-        start_day = pd.Timestamp(nav_df["date"].min()).strftime("%Y-%m-%d")
-        end_day = pd.Timestamp(nav_df["date"].max()).strftime("%Y-%m-%d")
+        start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+        end_day = nav_df["date"].max().strftime("%Y-%m-%d")
         # 日期规范
         freq = infer_frequency(self.fund_name, nav_df)
         self.freq = freq
@@ -59,25 +59,23 @@ class NavResearch:
         else:  # freq is "W"
             nav_df = match_data(nav_df, weekly_trade_date)
         # 日期规范后的start_date, end_date
-        start_date = pd.Timestamp(nav_df["date"].min()).strftime("%Y-%m-%d")
-        end_date = pd.Timestamp(nav_df["date"].max()).strftime("%Y-%m-%d")
-        self.start_date = start_date
-        self.end_date = end_date
-        # benchmark data
+        start_day_t = nav_df["date"].min().strftime("%Y-%m-%d")
+        end_day_t = nav_df["date"].max().strftime("%Y-%m-%d")
+        self.start_day_t = start_day_t
+        self.end_day_t = end_day_t
+        # 获取基准数据
         error_code, benchmark_df = w.wsd(
-            self.benchmark_code,
-            "close",
-            start_date,
-            end_date,
-            "Fill=Previous",
-            usedf=True,
+        self.benchmark_code,
+        "close",
+        self.start_day_t,
+        self.end_day_t,
+        "Fill=Previous",
+        usedf=True,
         )
         benchmark_df.reset_index(inplace=True)
         benchmark_df.columns = ["date", self.benchmark_code]
         benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
-        benchmark_df[self.benchmark_code] = (
-            benchmark_df[self.benchmark_code] / benchmark_df[self.benchmark_code][0]
-        )
+        benchmark_df[self.benchmark_code] = benchmark_df[self.benchmark_code]/benchmark_df[self.benchmark_code].iloc[0]
         # df_nav
         df = pd.merge(nav_df, benchmark_df, on="date", how="left")
         df["excess_nav"] = df["nav_adjusted"] - df[self.benchmark_code] + 1
@@ -134,23 +132,23 @@ class NavResearch:
             {
                 "基金产品": [self.fund_name],
                 "基准指数": [self.benchmark_name],
-                "净值起始日期": [self.start_date],
-                "净值结束日期": [self.end_date],
+                "净值起始日期": [self.start_day_t],
+                "净值结束日期": [self.end_day_t],
                 "单位净值": [
-                    self.df_nav.loc[self.df_nav["date"] == self.end_date, "nav_unit"]
+                    self.df_nav.loc[self.df_nav["date"] == self.end_day_t, "nav_unit"]
                     .values[0]
                     .round(4)
                 ],
                 "累计净值": [
                     self.df_nav.loc[
-                        self.df_nav["date"] == self.end_date, "nav_accumulated"
+                        self.df_nav["date"] == self.end_day_t, "nav_accumulated"
                     ]
                     .values[0]
                     .round(4)
                 ],
                 "复权净值": [
                     self.df_nav.loc[
-                        self.df_nav["date"] == self.end_date, "nav_adjusted"
+                        self.df_nav["date"] == self.end_day_t, "nav_adjusted"
                     ]
                     .values[0]
                     .round(4)
@@ -159,7 +157,7 @@ class NavResearch:
         )
         # nav ratio table
         days_diff = (
-            (np.datetime64(self.end_date) - np.datetime64(self.start_date))
+            (np.datetime64(self.end_day_t) - np.datetime64(self.start_day_t))
             .astype("timedelta64[D]")
             .astype(int)
         )
@@ -404,11 +402,11 @@ class NavResearch:
             </html>
         """
         html_name = (
-            np.datetime_as_string(np.datetime64(self.start_date), unit="D").replace(
+            np.datetime_as_string(np.datetime64(self.start_day_t), unit="D").replace(
                 "-", ""
             )
             + "_"
-            + np.datetime_as_string(np.datetime64(self.end_date), unit="D").replace(
+            + np.datetime_as_string(np.datetime64(self.end_day_t), unit="D").replace(
                 "-", ""
             )
             + "_"
@@ -416,7 +414,7 @@ class NavResearch:
             + "_nav_analysis"
         )
         # folder_path = rf"C:\Users\17820\Desktop\VScode\Private_nav_research\docs\{self.strategy}"
-        folder_path = rf"E:\桌面文件\Vscode\Private_nav_research\docs\{self.strategy}"
+        folder_path = rf"docs\{self.strategy}"
         # 构建完整文件路径
         file_path = f"{folder_path}\\{html_name}.html"
         # 确保文件夹存在（如果不存在则创建）

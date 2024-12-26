@@ -1,18 +1,14 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from pathlib import Path
 import datetime
 from typing import Union, Tuple
 from pandas import Series, Timestamp
-import matplotlib.dates as mdates
 import copy
 from pyecharts.charts import Line
 import pyecharts.options as opts
 from WindPy import w
-
 w.start()
-
 
 # 时间格式转换
 def format_date(
@@ -37,7 +33,6 @@ def format_date(
     else:
         raise TypeError("date should be str, int or timestamp!")
 
-
 # 加载数据
 def load_data(df_path):
     df_path = Path(df_path)
@@ -50,20 +45,18 @@ def load_data(df_path):
         print("非CSV或Excel格式的文件")
     return df
 
-
 # 求复权净值(nav_adjusted)
 def get_nav_adjusted(nav_df):
     nav_df_copy = nav_df.copy()
-    nav_df_copy["复权净值"] = np.nan
-    nav_df_copy.loc[0, "复权净值"] = 1
+    nav_df_copy["nav_adjusted"] = np.nan
+    nav_df_copy.loc[0, "nav_adjusted"] = 1
     for i in range(1, len(nav_df_copy)):
         nav_adjusted_new = (
-            nav_df_copy.loc[i, "累计净值"] - nav_df_copy.loc[i - 1, "累计净值"]
-        ) / nav_df_copy.loc[i - 1, "单位净值"] + 1
-        nav_adjusted_new *= nav_df_copy.loc[i - 1, "复权净值"]
-        nav_df_copy.loc[i, "复权净值"] = nav_adjusted_new
+            nav_df_copy.loc[i, "nav_accumulated"] - nav_df_copy.loc[i - 1, "nav_accumulated"]
+        ) / nav_df_copy.loc[i - 1, "nav_unit"] + 1
+        nav_adjusted_new *= nav_df_copy.loc[i - 1, "nav_adjusted"]
+        nav_df_copy.loc[i, "nav_adjusted"] = nav_adjusted_new
     return nav_df_copy
-
 
 # 净值数据标准化
 def get_standardized_data(nav_df):
@@ -90,12 +83,15 @@ def get_standardized_data(nav_df):
         nav_df["日期"] = pd.to_datetime(nav_df["日期"])
     # 排序
     nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
+    nav_df = nav_df[["日期", "单位净值", "累计净值"]]
+    nav_df.rename(columns={"日期": "date","单位净值": "nav_unit","累计净值": "nav_accumulated"}, inplace=True)
     nav_df = get_nav_adjusted(nav_df)
+    # 保留小数点后4位
+    nav_df = nav_df.round(4)
     return nav_df
 
-
-def infer_frequency(fund_name, df_nav):
-    date = df_nav["date"].values
+def infer_frequency(fund_name, nav_df):
+    date = nav_df["date"].values
     # 如果大部分日期间隔为 1 天，那么数据可能是日度的
     if (np.diff(date) == np.timedelta64(1, "D")).mean() > 0.75:
         return "D"
@@ -104,7 +100,6 @@ def infer_frequency(fund_name, df_nav):
     else:
         print(f"{fund_name}无法推断频率,自动转为周度")
         return "W"
-
 
 def generate_trading_date(
     begin_date: np.datetime64 = np.datetime64("2015-01-01"),
@@ -139,7 +134,6 @@ def generate_trading_date(
         ).astype("datetime64[D]"),
     )
 
-
 def match_data(
     nav_data: pd.DataFrame,
     trade_date: np.ndarray[np.datetime64],
@@ -159,6 +153,21 @@ def match_data(
     combined_unique = combined_unique.reset_index(drop=True)
     return combined_unique
 
+# benchmark data
+def get_benchmark_data(self):
+    error_code, benchmark_df = w.wsd(
+        self.benchmark_code,
+        "close",
+        self.start_day_t,
+        self.end_day_t,
+        "Fill=Previous",
+        usedf=True,
+    )
+    benchmark_df.reset_index(inplace=True)
+    benchmark_df.columns = ["date", self.benchmark_code]
+    benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
+    benchmark_df[self.benchmark_code] = benchmark_df[self.benchmark_code]/benchmark_df[self.benchmark_code].iloc[0]
+    return benchmark_df
 
 def get_nav_lines(df, fund_name, benchmark_name):
 
