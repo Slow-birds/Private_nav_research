@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import os
 import copy
 from WindPy import w
 
@@ -404,13 +405,12 @@ class NavResearch:
         # 构建完整文件路径
         file_path = f"{folder_path}\\{html_name}.html"
         # 确保文件夹存在（如果不存在则创建）
-        import os
-
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(html)
-
+        # print(f"Create:{html_name}.html")
+        print(f"Create:{folder_path}/{html_name}.html")
     def get_plot(self):
         # plot
         fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(25, 14))

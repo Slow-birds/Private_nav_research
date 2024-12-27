@@ -13,9 +13,10 @@ warnings.simplefilter('ignore')
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
 plt.rcParams['axes.unicode_minus'] = False
 
+print("项目开始------------------------")
 basic_info = load_data("产品目录.xlsx")
 
-# 删除html文件
+print("删除html文件")
 def delete_html_files(directory):
     # 遍历目录及其子目录
     for root, dirs, files in os.walk(directory):
@@ -33,7 +34,7 @@ def delete_html_files(directory):
 directory_to_clean = "docs"
 delete_html_files(directory_to_clean)
 
-# 生成新的html文件
+print("生成新的html文件")
 files_list_series = pd.Series([i.stem for i in Path("./data").glob("*.xlsx")])
 for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = Path("data").joinpath(f"{files_list_series[files_list_series.str.contains(row[3])].item()}.xlsx")
@@ -42,12 +43,14 @@ for row in basic_info.itertuples(index=False, name=None):
     demo.get_analysis_table()
     demo.get_html()
 
-# 生成新的index.html文件
+print("生成index.html")
 def generate_index_html(folder_path: Path):
     # 获取目录及其子目录中的所有 HTML 文件
-    html_files = folder_path.rglob("*.html")
-    print(html_files)
-
+    html_files = list(folder_path.rglob("*.html"))
+    # 创建一个集合来存储所有唯一的文件夹路径（不包括 index.html 所在的文件夹）
+    unique_folders = {html_file.parent for html_file in html_files if html_file.name != "index.html"}
+    # 定义排序顺序
+    sorted_folder_names = ["主观CTA", "量化CTA", "套利"]
     # 创建一个新的 index.html 文件
     with open(folder_path.joinpath("index.html"), "w", encoding="utf-8") as f:
         f.write(
@@ -59,12 +62,11 @@ def generate_index_html(folder_path: Path):
     body {
         font-family: Arial, sans-serif;
         font-size: 20px;
-        color: blue;
+        color: black;
     }
     h2 {
         font-size: 25px;
-        color: blue;
-
+        color: black;
     }
     a {
         text-decoration: none;
@@ -73,25 +75,23 @@ def generate_index_html(folder_path: Path):
 </head>
 <body>"""
         )
-        # 创建一个集合来存储已经处理过的文件夹，避免重复创建链接
-        processed_folders = set()
-        # 为每个 HTML 文件创建一个链接
-        for html_file in html_files:
-            if html_file.name == "index.html":
-                continue
-            relative_path = html_file.relative_to(folder_path)
-            # 如果文件夹还没有被处理过，为文件夹创建一个链接
-            if html_file.parent not in processed_folders:
-                f.write(f"<h2><a>{html_file.parent.name}</a></h2>\n")
-                processed_folders.add(html_file.parent)
-
-            # 创建HTML文件的链接
-            cleaned_name = relative_path.name.replace("_nav_analysis", "")
-            f.write(f'<a href="{relative_path}" target="_blank">{cleaned_name}</a><br/>\n')
-
+        # 按照指定的顺序写入 <h2> 标题
+        for folder_name in sorted_folder_names:
+            # 检查文件夹是否存在
+            folder_path_obj = folder_path / folder_name
+            if folder_path_obj in unique_folders:
+                # 写入 <h2> 标题和文件夹链接（这里链接到文件夹本身，但可以根据需要调整）
+                f.write(f"<h2><a>{folder_name}</a></h2>\n")
+                # 列出该文件夹下的所有HTML文件
+                f.write("<ul>\n")
+                for html_file in html_files:
+                    if html_file.parent == folder_path_obj:
+                        cleaned_name = html_file.name.replace("_nav_analysis", "")
+                        relative_path = html_file.relative_to(folder_path)
+                        f.write(f'<li><a href="{relative_path}" target="_blank">{cleaned_name}</a></li>\n')
+                f.write("</ul>\n")
         f.write("</body>\n</html>")
 
-# 使用函数
-generate_index_html(Path("docs"))
+print("Cerate:index.html")
 
-print("生成完成")
+print("项目完成------------------------")
