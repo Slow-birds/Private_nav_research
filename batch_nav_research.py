@@ -62,11 +62,11 @@ def generate_index_html(folder_path: Path):
     body {
         font-family: Arial, sans-serif;
         font-size: 20px;
-        color: black;
+        color: blue;
     }
     h2 {
         font-size: 25px;
-        color: black;
+        color: blue;
     }
     a {
         text-decoration: none;
@@ -92,6 +92,7 @@ def generate_index_html(folder_path: Path):
                 f.write("</ul>\n")
         f.write("</body>\n</html>")
 
-print("Cerate:index.html")
+generate_index_html(Path("docs"))
 
+print("Cerate:index.html")
 print("项目完成------------------------")
