@@ -47,16 +47,17 @@ def load_data(df_path):
 
 # 求复权净值(nav_adjusted)
 def get_nav_adjusted(nav_df):
-    nav_df_copy = nav_df.copy()
-    nav_df_copy["nav_adjusted"] = np.nan
-    nav_df_copy.loc[0, "nav_adjusted"] = 1
-    for i in range(1, len(nav_df_copy)):
+    nav_df = nav_df.copy()
+    nav_df["nav_adjusted"] = np.nan
+    nav_df.loc[0, "nav_adjusted"] = 1
+    for i in range(1, len(nav_df)):
         nav_adjusted_new = (
-            nav_df_copy.loc[i, "nav_accumulated"] - nav_df_copy.loc[i - 1, "nav_accumulated"]
-        ) / nav_df_copy.loc[i - 1, "nav_unit"] + 1
-        nav_adjusted_new *= nav_df_copy.loc[i - 1, "nav_adjusted"]
-        nav_df_copy.loc[i, "nav_adjusted"] = nav_adjusted_new
-    return nav_df_copy
+            nav_df.loc[i, "nav_accumulated"] - nav_df.loc[i - 1, "nav_accumulated"]
+        ) / nav_df.loc[i - 1, "nav_unit"] + 1
+        nav_adjusted_new *= nav_df.loc[i - 1, "nav_adjusted"]
+        nav_df.loc[i, "nav_adjusted"] = nav_adjusted_new
+        nav_df = nav_df[["date", "nav_unit", "nav_accumulated","nav_adjusted"]]
+    return nav_df
 
 # 净值数据标准化
 def get_standardized_data(nav_df):
@@ -89,6 +90,11 @@ def get_standardized_data(nav_df):
     # 保留小数点后4位
     nav_df = nav_df.round(4)
     return nav_df
+
+def get_date_range(nav_df):
+    start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+    end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+    return start_day, end_day
 
 def infer_frequency(fund_name, nav_df):
     date = nav_df["date"].values
@@ -154,19 +160,19 @@ def match_data(
     return combined_unique
 
 # benchmark data
-def get_benchmark_data(self):
+def get_benchmark_data(code,start_day,end_day):
     error_code, benchmark_df = w.wsd(
-        self.benchmark_code,
+        code,
         "close",
-        self.start_day_t,
-        self.end_day_t,
+        start_day,
+        end_day,
         "Fill=Previous",
         usedf=True,
     )
     benchmark_df.reset_index(inplace=True)
-    benchmark_df.columns = ["date", self.benchmark_code]
+    benchmark_df.columns = ["date", code]
     benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
-    benchmark_df[self.benchmark_code] = benchmark_df[self.benchmark_code]/benchmark_df[self.benchmark_code].iloc[0]
+    benchmark_df[code] = benchmark_df[code]/benchmark_df[code].iloc[0]
     return benchmark_df
 
 def get_nav_lines(df, fund_name, benchmark_name):

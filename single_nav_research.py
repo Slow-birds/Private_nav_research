@@ -1,11 +1,11 @@
 from nav_research import NavResearch
 
-data_path = r"data\主观价值_睿郡财富11号1期.xlsx"
-strategy = "主观多头"
-fund_name = "睿郡财富11号1期"
-benchmark_code = "000300.SH"
-benchmark_name = "沪深300"
-threshold = -0.1
+data_path = r"E:\桌面文件\Vscode\Private_nav_research\data\旭诺CTA一号净值.xlsx"
+strategy = "量化CTA"
+fund_name = "旭诺CTA一号"
+benchmark_code = "NH0100.NHF"
+benchmark_name = "南华商品指数"
+threshold = -0.05
 
 demo = NavResearch(data_path,strategy,fund_name,benchmark_code,benchmark_name,threshold)
 demo.get_data()

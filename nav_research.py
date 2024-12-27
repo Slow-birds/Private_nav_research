@@ -46,8 +46,7 @@ class NavResearch:
         nav_df = nav_df.div(nav_df.iloc[0])
         nav_df.reset_index(inplace=True)
         # 日期规范前的start_day, end_day
-        start_day = nav_df["date"].min().strftime("%Y-%m-%d")
-        end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+        start_day,end_day = get_date_range(nav_df)
         # 日期规范
         freq = infer_frequency(self.fund_name, nav_df)
         self.freq = freq
@@ -59,23 +58,11 @@ class NavResearch:
         else:  # freq is "W"
             nav_df = match_data(nav_df, weekly_trade_date)
         # 日期规范后的start_date, end_date
-        start_day_t = nav_df["date"].min().strftime("%Y-%m-%d")
-        end_day_t = nav_df["date"].max().strftime("%Y-%m-%d")
+        start_day_t, end_day_t = get_date_range(nav_df)
         self.start_day_t = start_day_t
         self.end_day_t = end_day_t
         # 获取基准数据
-        error_code, benchmark_df = w.wsd(
-        self.benchmark_code,
-        "close",
-        self.start_day_t,
-        self.end_day_t,
-        "Fill=Previous",
-        usedf=True,
-        )
-        benchmark_df.reset_index(inplace=True)
-        benchmark_df.columns = ["date", self.benchmark_code]
-        benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
-        benchmark_df[self.benchmark_code] = benchmark_df[self.benchmark_code]/benchmark_df[self.benchmark_code].iloc[0]
+        benchmark_df = get_benchmark_data(self.benchmark_code,start_day_t,end_day_t)
         # df_nav
         df = pd.merge(nav_df, benchmark_df, on="date", how="left")
         df["excess_nav"] = df["nav_adjusted"] - df[self.benchmark_code] + 1
@@ -120,7 +107,6 @@ class NavResearch:
             ["date", "fund_drawdown", "benchmark_drawdown", "excess_drawdown"]
         ].round(4)
         # df_nav,f_return,df_drawdown
-
         self.df_nav = df_nav
         self.df_return = df_return
         self.df_drawdown = df_drawdown
