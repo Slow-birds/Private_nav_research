@@ -1,6 +1,6 @@
 from nav_research import NavResearch
 
-data_path = r"E:\桌面文件\Vscode\Private_nav_research\data\旭诺CTA一号净值.xlsx"
+data_path = r"data\旭诺CTA一号净值.xlsx"
 strategy = "量化CTA"
 fund_name = "旭诺CTA一号"
 benchmark_code = "NH0100.NHF"

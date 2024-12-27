@@ -371,7 +371,7 @@ class NavResearch:
                                 text-align: center; 
                             }}
                         th {{
-                                background-color: #f59e00;
+                                background-color: #3299CC;
                                 color: white;
                             }}
                     </style>
