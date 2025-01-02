@@ -200,38 +200,19 @@ class NavResearch:
             }
         )
         # year return table
-        df_year = (
-            self.df_nav.sort_values("date")
-            .groupby(self.df_nav["date"].dt.to_period("Y"))
-            .tail(1)
-        )
-        first_row_df_nav = self.df_nav.iloc[0:1]
-        df_year = pd.concat([first_row_df_nav, df_year], ignore_index=True)
-        df_year[f"{self.fund_name}_收益"] = (
-            df_year["nav_adjusted"] / df_year["nav_adjusted"].shift(1) - 1
-        )
-        df_year[f"{self.benchmark_name}_收益"] = (
-            df_year[self.benchmark_code] / df_year[self.benchmark_code].shift(1) - 1
-        )
-        df_year["超额收益"] = (
-            df_year[f"{self.fund_name}_收益"] - df_year[f"{self.benchmark_name}_收益"]
-        )
-        df_year["分年度业绩"] = df_year["date"].dt.year
-        df_year[f"{self.fund_name}_收益"] = df_year[f"{self.fund_name}_收益"].apply(
-            lambda x: f"{x:.2%}"
-        )
-        df_year[f"{self.benchmark_name}_收益"] = df_year[
-            f"{self.benchmark_name}_收益"
-        ].apply(lambda x: f"{x:.2%}")
-        df_year["超额收益"] = df_year["超额收益"].apply(lambda x: f"{x:.2%}")
-        year_return_table = df_year[
-            [
-                "分年度业绩",
-                f"{self.fund_name}_收益",
-                f"{self.benchmark_name}_收益",
-                "超额收益",
-            ]
-        ].drop(index=0)
+        # 使用该函数计算年度指标
+        year_return_df = calculate_annual_metrics(self.df_nav, self.fund_name, self.benchmark_code, self.benchmark_name)
+        # 不转换百分比为字符串，而是使用style来格式化输出
+        def format_percentages(val):
+            return f"{val * 100:.2f}%" if val is not None else "-"
+        year_return_table =year_return_df.style.format({
+            f"{self.fund_name}_收益": format_percentages,
+            f"{self.fund_name}_最大回撤": format_percentages,  # 假设最大回撤也是一个小数形式的比例
+            f"{self.benchmark_name}_收益": format_percentages,
+            f"{self.benchmark_name}_最大回撤": format_percentages,
+            "超额收益": format_percentages,
+        })
+        print(year_return_table)
         # drawdown table
         # 初始化
         drawdowns = []

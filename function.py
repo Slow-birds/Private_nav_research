@@ -8,7 +8,9 @@ import copy
 from pyecharts.charts import Line
 import pyecharts.options as opts
 from WindPy import w
+
 w.start()
+
 
 # 时间格式转换
 def format_date(
@@ -33,6 +35,7 @@ def format_date(
     else:
         raise TypeError("date should be str, int or timestamp!")
 
+
 # 加载数据
 def load_data(df_path):
     df_path = Path(df_path)
@@ -45,6 +48,7 @@ def load_data(df_path):
         print("非CSV或Excel格式的文件")
     return df
 
+
 # 求复权净值(nav_adjusted)
 def get_nav_adjusted(nav_df):
     nav_df = nav_df.copy()
@@ -56,8 +60,9 @@ def get_nav_adjusted(nav_df):
         ) / nav_df.loc[i - 1, "nav_unit"] + 1
         nav_adjusted_new *= nav_df.loc[i - 1, "nav_adjusted"]
         nav_df.loc[i, "nav_adjusted"] = nav_adjusted_new
-        nav_df = nav_df[["date", "nav_unit", "nav_accumulated","nav_adjusted"]]
+        nav_df = nav_df[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]]
     return nav_df
+
 
 # 净值数据标准化
 def get_standardized_data(nav_df):
@@ -85,16 +90,21 @@ def get_standardized_data(nav_df):
     # 排序
     nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
     nav_df = nav_df[["日期", "单位净值", "累计净值"]]
-    nav_df.rename(columns={"日期": "date","单位净值": "nav_unit","累计净值": "nav_accumulated"}, inplace=True)
+    nav_df.rename(
+        columns={"日期": "date", "单位净值": "nav_unit", "累计净值": "nav_accumulated"},
+        inplace=True,
+    )
     nav_df = get_nav_adjusted(nav_df)
     # 保留小数点后4位
     nav_df = nav_df.round(4)
     return nav_df
 
+
 def get_date_range(nav_df):
     start_day = nav_df["date"].min().strftime("%Y-%m-%d")
     end_day = nav_df["date"].max().strftime("%Y-%m-%d")
     return start_day, end_day
+
 
 def infer_frequency(fund_name, nav_df):
     date = nav_df["date"].values
@@ -106,6 +116,7 @@ def infer_frequency(fund_name, nav_df):
     else:
         print(f"{fund_name}无法推断频率,自动转为周度")
         return "W"
+
 
 def generate_trading_date(
     begin_date: np.datetime64 = np.datetime64("2015-01-01"),
@@ -140,6 +151,7 @@ def generate_trading_date(
         ).astype("datetime64[D]"),
     )
 
+
 def match_data(
     nav_data: pd.DataFrame,
     trade_date: np.ndarray[np.datetime64],
@@ -159,8 +171,9 @@ def match_data(
     combined_unique = combined_unique.reset_index(drop=True)
     return combined_unique
 
+
 # benchmark data
-def get_benchmark_data(code,start_day,end_day):
+def get_benchmark_data(code, start_day, end_day):
     error_code, benchmark_df = w.wsd(
         code,
         "close",
@@ -172,8 +185,9 @@ def get_benchmark_data(code,start_day,end_day):
     benchmark_df.reset_index(inplace=True)
     benchmark_df.columns = ["date", code]
     benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
-    benchmark_df[code] = benchmark_df[code]/benchmark_df[code].iloc[0]
+    benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
     return benchmark_df
+
 
 def get_nav_lines(df, fund_name, benchmark_name):
 
@@ -302,6 +316,60 @@ def get_max_drawdown(df_nav, column_name):
     max_drawdown = df_nav[f"{column_name}_drawdown"].min()
     return max_drawdown
 
+
+def calculate_annual_metrics(df, fund_name, benchmark_code, benchmark_name):
+    years = df["date"].dt.year.unique()
+    year_return = pd.DataFrame(
+        columns=[
+            "分年度业绩",
+            f"{fund_name}_收益",
+            f"{fund_name}_最大回撤",
+            f"{benchmark_name}_收益",
+            f"{benchmark_name}_最大回撤",
+            "超额收益",
+        ]
+    )
+    nav_year_end = df.sort_values("date").groupby(df["date"].dt.to_period("Y")).tail(1)
+    for year in years:
+        year_df = df[df["date"].dt.year == year]
+        fund_start_value = (
+            nav_year_end[nav_year_end["date"].dt.year == (year - 1)][
+                "nav_adjusted"
+            ].iloc[0]
+            if year > years.min()
+            else year_df["nav_adjusted"].iloc[0]
+        )
+        fund_end_value = year_df["nav_adjusted"].iloc[-1]
+        fund_return = fund_end_value / fund_start_value - 1
+        fund_max_drawdown = get_max_drawdown(year_df, "nav_adjusted")
+
+        benchmark_start_value = (
+            nav_year_end[nav_year_end["date"].dt.year == (year - 1)][
+                benchmark_code
+            ].iloc[0]
+            if year > years.min()
+            else year_df[benchmark_code].iloc[0]
+        )
+        benchmark_end_value = year_df[benchmark_code].iloc[-1]
+        benchmark_return = benchmark_end_value / benchmark_start_value - 1
+        benchmark_max_drawdown = get_max_drawdown(year_df, benchmark_code)
+
+        excess_return = fund_return - benchmark_return
+        new_row = pd.DataFrame(
+            [
+                [
+                    year,
+                    fund_return,
+                    fund_max_drawdown,
+                    benchmark_return,
+                    benchmark_max_drawdown,
+                    excess_return,
+                ]
+            ],
+            columns=year_return.columns,
+        )
+        year_return = pd.concat([year_return, new_row], ignore_index=True)
+    return year_return
 
 # import os
 # data = pd.read_excel(r"C:\Users\17820\Desktop\Private_nav_research\nav_data\私募产品净值数据.xlsx")
