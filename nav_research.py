@@ -47,12 +47,13 @@ class NavResearch:
         nav_df = nav_df.div(nav_df.iloc[0])
         nav_df.reset_index(inplace=True)
         # 日期规范前的start_day, end_day
-        start_day,end_day = get_date_range(nav_df)
+        start_day, end_day = get_date_range(nav_df)
         # 日期规范
         freq = infer_frequency(self.fund_name, nav_df)
         self.freq = freq
         trade_date, weekly_trade_date = generate_trading_date(
-            begin_date=np.datetime64(start_day) - np.timedelta64(10, "D"), end_date=np.datetime64(end_day)
+            begin_date=np.datetime64(start_day) - np.timedelta64(10, "D"),
+            end_date=np.datetime64(end_day),
         )
         if self.freq == "D":
             nav_df = match_data(nav_df, trade_date)
@@ -63,7 +64,7 @@ class NavResearch:
         self.start_day_t = start_day_t
         self.end_day_t = end_day_t
         # 获取基准数据
-        benchmark_df = get_benchmark_data(self.benchmark_code,start_day_t,end_day_t)
+        benchmark_df = get_benchmark_data(self.benchmark_code, start_day_t, end_day_t)
         # df_nav
         df = pd.merge(nav_df, benchmark_df, on="date", how="left")
         df["excess_nav"] = df["nav_adjusted"] - df[self.benchmark_code] + 1
@@ -200,9 +201,28 @@ class NavResearch:
             }
         )
         # year return table
-        # 使用该函数计算年度指标
-        year_return_df = calculate_annual_metrics(self.df_nav, self.fund_name, self.benchmark_code, self.benchmark_name)
+        # 计算年度指标
+        year_return_table = calculate_annual_metrics(
+            self.df_nav, self.fund_name, self.benchmark_code, self.benchmark_name
+        )
+        # 转换百分比为字符串
+        year_return_table[f"{self.fund_name}_收益"] = year_return_table[
+            f"{self.fund_name}_收益"
+        ].apply(lambda x: f"{x:.2%}")
+        year_return_table[f"{self.benchmark_name}_收益"] = year_return_table[
+            f"{self.benchmark_name}_收益"
+        ].apply(lambda x: f"{x:.2%}")
+        year_return_table[f"{self.fund_name}_最大回撤"] = year_return_table[
+            f"{self.fund_name}_最大回撤"
+        ].apply(lambda x: f"{x:.2%}")
+        year_return_table[f"{self.benchmark_name}_最大回撤"] = year_return_table[
+            f"{self.benchmark_name}_最大回撤"
+        ].apply(lambda x: f"{x:.2%}")
+        year_return_table["超额收益"] = year_return_table["超额收益"].apply(
+            lambda x: f"{x:.2%}"
+        )
         # 不转换百分比为字符串，而是使用style来格式化输出
+        """
         def format_percentages(val):
             return f"{val * 100:.2f}%" if val is not None else "-"
         year_return_table =year_return_df.style.format({
@@ -212,7 +232,7 @@ class NavResearch:
             f"{self.benchmark_name}_最大回撤": format_percentages,
             "超额收益": format_percentages,
         })
-        print(year_return_table)
+        """
         # drawdown table
         # 初始化
         drawdowns = []
@@ -392,6 +412,7 @@ class NavResearch:
             f.write(html)
         # print(f"Create:{html_name}.html")
         print(f"Create:{folder_path}/{html_name}.html")
+
     def get_plot(self):
         # plot
         fig, (ax1, ax2) = plt.subplots(nrows=2, figsize=(25, 14))

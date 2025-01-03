@@ -73,6 +73,8 @@ def get_standardized_data(nav_df):
     if "累计单位净值" in nav_df.columns:
         nav_df = nav_df.rename(columns={"累计单位净值": "累计净值"})
     assert "累计净值" in nav_df.columns, "Error: 未找到累计净值列"
+    if "复权单位净值" in nav_df.columns:
+        nav_df = nav_df.rename(columns={"复权单位净值": "复权净值"})
     # 检查是否有日期/累计净值为空的数据
     assert nav_df["日期"].isnull().sum() == 0, "Error: 净值数据中存在日期为空的数据"
     assert (
@@ -89,12 +91,16 @@ def get_standardized_data(nav_df):
         nav_df["日期"] = pd.to_datetime(nav_df["日期"])
     # 排序
     nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
-    nav_df = nav_df[["日期", "单位净值", "累计净值"]]
+    
     nav_df.rename(
         columns={"日期": "date", "单位净值": "nav_unit", "累计净值": "nav_accumulated"},
         inplace=True,
     )
-    nav_df = get_nav_adjusted(nav_df)
+    if "复权净值" in nav_df.columns:
+        nav_df.rename(columns={"复权净值": "nav_adjusted"}, inplace=True)
+    else:
+        nav_df = get_nav_adjusted(nav_df)
+    nav_df = nav_df[["date", "nav_unit", "nav_accumulated","nav_adjusted"]]
     # 保留小数点后4位
     nav_df = nav_df.round(4)
     return nav_df
@@ -318,7 +324,7 @@ def get_max_drawdown(df_nav, column_name):
 
 
 def calculate_annual_metrics(df, fund_name, benchmark_code, benchmark_name):
-    years = df["date"].dt.year.unique()
+    nav_year_end = df.sort_values("date").groupby(df["date"].dt.to_period("Y")).tail(1)
     year_return = pd.DataFrame(
         columns=[
             "分年度业绩",
@@ -329,7 +335,7 @@ def calculate_annual_metrics(df, fund_name, benchmark_code, benchmark_name):
             "超额收益",
         ]
     )
-    nav_year_end = df.sort_values("date").groupby(df["date"].dt.to_period("Y")).tail(1)
+    years = df["date"].dt.year.unique()
     for year in years:
         year_df = df[df["date"].dt.year == year]
         fund_start_value = (

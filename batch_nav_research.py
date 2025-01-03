@@ -13,10 +13,10 @@ warnings.simplefilter('ignore')
 plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-print("项目开始------------------------")
+print("项目开始------------------------------------------------")
 basic_info = load_data("产品目录.xlsx")
 
-print("删除html文件")
+print("开始删除html文件")
 def delete_html_files(directory):
     # 遍历目录及其子目录
     for root, dirs, files in os.walk(directory):
@@ -34,23 +34,24 @@ def delete_html_files(directory):
 directory_to_clean = "docs"
 delete_html_files(directory_to_clean)
 
-print("生成新的html文件")
-files_list_series = pd.Series([i.stem for i in Path("./data").glob("*.xlsx")])
+print("开始生成新的html文件")
+files_list_series = pd.Series([i for i in Path("./data").rglob("*.xlsx")])
 for row in basic_info.itertuples(index=False, name=None):
-    nav_df_path = Path("data").joinpath(f"{files_list_series[files_list_series.str.contains(row[3])].item()}.xlsx")
-    demo = NavResearch(nav_df_path,row[0],row[3],row[4],row[5],row[6])
+    nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
+    assert len(nav_df_path) == 1, "找到多个文件"
+    demo = NavResearch(nav_df_path.item(),row[0],row[3],row[4],row[5],row[6])
     demo.get_data()
     demo.get_analysis_table()
     demo.get_html()
 
-print("生成index.html")
+print("开始生成index.html")
 def generate_index_html(folder_path: Path):
     # 获取目录及其子目录中的所有 HTML 文件
     html_files = list(folder_path.rglob("*.html"))
     # 创建一个集合来存储所有唯一的文件夹路径（不包括 index.html 所在的文件夹）
     unique_folders = {html_file.parent for html_file in html_files if html_file.name != "index.html"}
     # 定义排序顺序
-    sorted_folder_names = ["主观CTA", "量化CTA", "套利"]
+    sorted_folder_names = ["主观CTA", "量化CTA", "套利","其他"]
     # 创建一个新的 index.html 文件
     with open(folder_path.joinpath("index.html"), "w", encoding="utf-8") as f:
         f.write(
@@ -95,4 +96,4 @@ def generate_index_html(folder_path: Path):
 generate_index_html(Path("docs"))
 
 print("Cerate:index.html")
-print("项目完成------------------------")
+print("项目完成------------------------------------------------")
