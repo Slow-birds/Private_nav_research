@@ -51,7 +51,7 @@ def generate_index_html(folder_path: Path):
     # 创建一个集合来存储所有唯一的文件夹路径（不包括 index.html 所在的文件夹）
     unique_folders = {html_file.parent for html_file in html_files if html_file.name != "index.html"}
     # 定义排序顺序
-    sorted_folder_names = ["主观CTA", "量化CTA", "套利","其他"]
+    sorted_folder_names = ["主观CTA", "量化CTA", "套利","期权","其他"]
     # 创建一个新的 index.html 文件
     with open(folder_path.joinpath("index.html"), "w", encoding="utf-8") as f:
         f.write(
