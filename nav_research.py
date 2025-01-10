@@ -233,6 +233,11 @@ class NavResearch:
             "超额收益": format_percentages,
         })
         """
+        # month_return
+        data = self.df_nav[["date", "nav_adjusted"]]
+        month_return = win_ratio_stastics(nav=data["nav_adjusted"],date=data["date"])
+        month_return.index.name = "分月度业绩"
+        month_return_table = month_return.reset_index(drop=False)
         # drawdown table
         # 初始化
         drawdowns = []
@@ -315,6 +320,7 @@ class NavResearch:
             nav_ratio_table,
             year_return_table,
             drawdown_table,
+            month_return_table,
         ]
         self.table_list = table_list
         return self.table_list
@@ -330,6 +336,9 @@ class NavResearch:
             index=False, classes="uniform-width"
         )
         table_html_four = self.table_list[3].to_html(
+            index=False, classes="uniform-width"
+        )
+        table_html_five = self.table_list[4].to_html(
             index=False, classes="uniform-width"
         )
         nav_line = get_nav_lines(self.df_nav, self.fund_name, self.benchmark_name)
@@ -384,6 +393,7 @@ class NavResearch:
                     {nav_line.render_embed()}
                     {table_html_two}
                     {table_html_three}
+                    {table_html_five}
                     {drawdown_line.render_embed()}
                     {table_html_four}
                 </body>

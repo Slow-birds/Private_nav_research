@@ -7,6 +7,7 @@ from pandas import Series, Timestamp
 import copy
 from pyecharts.charts import Line
 import pyecharts.options as opts
+from typing import Literal
 from WindPy import w
 
 w.start()
@@ -194,6 +195,54 @@ def get_benchmark_data(code, start_day, end_day):
     benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
     return benchmark_df
 
+def calc_nav_rtn(nav: np.ndarray, types: Literal["log", "simple"] = "log"):
+    if types == "simple":
+        rtn = nav[1:] / nav[:-1] - 1
+    elif types == "log":
+        rtn = np.log(nav[1:] / nav[:-1])
+    else:
+        raise ValueError("types参数错误")
+    return np.insert(rtn, 0, np.nan)
+
+def win_ratio_stastics(nav: np.ndarray, date: np.ndarray[np.datetime64]):
+    """
+    目前只支持月度胜率统计
+    """
+    assert len(nav) == len(date), "nav和date长度不一致"
+    
+    nav_data = pd.DataFrame({"日期": date, "累计净值": nav})
+    # 找到日期序列中每个月的最后一天
+    nav_data["year_month"] = nav_data["日期"].dt.to_period("M")
+    monthly_rtn = nav_data.drop_duplicates(
+        subset="year_month", keep="last"
+    ).reset_index(drop=True)
+
+    monthly_rtn["rtn"] = calc_nav_rtn(monthly_rtn["累计净值"].values, types="simple")
+    monthly_rtn = monthly_rtn.copy()
+    monthly_rtn.iloc[0, monthly_rtn.columns.get_loc("rtn")] = (
+        monthly_rtn.iloc[0]["累计净值"] - 1
+    )
+    monthly_rtn["year"] = monthly_rtn["日期"].dt.year
+    monthly_rtn["month"] = monthly_rtn["日期"].dt.month
+    monthly_rtn = monthly_rtn.pivot_table(
+        index="year", columns="month", values="rtn", aggfunc="sum"
+    )
+
+    monthly_rtn.columns = [f"{x}月" for x in monthly_rtn.columns]
+    monthly_rtn.index.name = None
+    # monthly_rtn["年度总收益"] = monthly_rtn.apply(lambda x: np.prod(x + 1) - 1, axis=1)
+    monthly_rtn["月度胜率"] = monthly_rtn.apply(
+        lambda x: (x >= 0).sum() / (~np.isnan(x)).sum(), axis=1
+    )
+    # 保留四位小数
+    monthly_rtn = monthly_rtn.map(lambda x: round(x, 4))
+    for col in monthly_rtn.columns:
+        monthly_rtn[col] = monthly_rtn[col].map(lambda x: f"{x:.2%}")
+
+    # 将NAN变成NULL
+    if (monthly_rtn.iloc[0, :] == "nan%").sum() + 3 == monthly_rtn.shape[1] and monthly_rtn.iloc[0, monthly_rtn.shape[1] - 3] == "0.000%":
+        monthly_rtn = monthly_rtn.iloc[1:]
+    return monthly_rtn.replace("nan%", "")
 
 def get_nav_lines(df, fund_name, benchmark_name):
 
