@@ -30,3 +30,6 @@ for row in strategy_info.itertuples(index=False, name=None):
     data = pd.concat([data,nav_df], axis=0)
     
 data.to_excel('data.xlsx', index=False)
+
+
+print("数据已保存到data.xlsx")
