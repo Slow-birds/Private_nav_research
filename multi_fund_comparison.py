@@ -9,9 +9,9 @@ strategy_info = basic_info[basic_info["大类策略"] == "量化CTA"]
 def multi_fund_comparison(tables,fund_name):
     data1 = tables[0]
     data2 = tables[1].head(1)
-    data3 = pd.DataFrame(columns=[2019,2020,2021,2022,2023,2024,2025])
+    data3 = pd.DataFrame(columns=[2019,2020,2021,2022,2023,2024])
     data4 = tables[2]
-    years = [2019, 2020, 2021, 2022, 2023, 2024,2025]
+    years = [2019, 2020, 2021, 2022, 2023, 2024]
     for year in years:
         data3[year] = data4.loc[data4["分年度业绩"] == year, f"{fund_name}_收益"].values
     data = pd.concat([data1,data2,data3], axis=1)

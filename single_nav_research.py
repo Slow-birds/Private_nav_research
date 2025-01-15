@@ -1,8 +1,8 @@
 from nav_research import NavResearch
 
-data_path = r"data\旭诺CTA三号净值20250102.xlsx"
+data_path = "资产净值公告_SVZ009_铭跃行远均衡一号私募证券投资基金_2022-07-29_2024-12-30_mul.xlsx"
 strategy = "量化CTA"
-fund_name = "旭诺CTA三号"
+fund_name = "铭跃行远均衡一号"
 benchmark_code = "NH0100.NHF"
 benchmark_name = "南华商品指数"
 threshold = -0.05
