@@ -58,7 +58,7 @@ def generate_index_html(folder_path: Path):
             """<html>
 <head>
 <meta charset="UTF-8">
-<title>Value over Time</title>
+<title>私募净值展示</title>
 <style>
     body {
         font-family: Arial, sans-serif;
