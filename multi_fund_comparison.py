@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 
 basic_info = load_data("产品目录.xlsx")
-strategy_info = basic_info[basic_info["大类策略"] == "量化CTA"]
+# strategy_info = basic_info[basic_info["大类策略"] == "量化CTA"]
 
 def multi_fund_comparison(tables,fund_name):
     data1 = tables[0]
@@ -21,7 +21,7 @@ def multi_fund_comparison(tables,fund_name):
 
 data = pd.DataFrame()
 files_list_series = pd.Series([i for i in Path("./data").rglob("*.xlsx")])
-for row in strategy_info.itertuples(index=False, name=None):
+for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
     assert len(nav_df_path) == 1, "找到多个文件"
     demo = NavResearch(nav_df_path.item(),row[0],row[3],row[4],row[5],row[6])
