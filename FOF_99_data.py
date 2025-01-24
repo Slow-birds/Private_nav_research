@@ -63,7 +63,7 @@ class FOF99Data:
 
 
 if __name__ == "__main__":
-    FOFData = FOF99Data("be6872d6063d88a3")
+    FOFData = FOF99Data("f71606d12628209b")
     data = FOFData.get_nav_data()
     data.to_csv(
         Path(

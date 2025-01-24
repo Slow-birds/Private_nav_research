@@ -35,7 +35,7 @@ directory_to_clean = "docs"
 delete_html_files(directory_to_clean)
 
 print("开始生成新的html文件")
-files_list_series = pd.Series([i for i in Path("./data").rglob("*.xlsx")])
+files_list_series = pd.Series([i for i in Path("./data").rglob("*.csv")])
 for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
     assert len(nav_df_path) == 1, "找到多个文件"
