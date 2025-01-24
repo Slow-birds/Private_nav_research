@@ -47,12 +47,12 @@ class FOF99Data:
         nav_data = pd.DataFrame(nav_data.json()["data"]["fund"]["prices"])
         nav_data = nav_data.rename(
             columns={
-                "cn": "复权净值",
-                "cnw": "累计净值",
-                "nav": "单位净值",
-                "drawdown": "最大回撤",
-                "pc": "涨跌幅",
                 "pd": "日期",
+                "nav": "单位净值",
+                "cnw": "累计净值",
+                "cn": "复权净值",
+                "pc": "涨跌幅",
+                "drawdown": "最大回撤",
             }
         ).drop(columns=["e_pc"])
         nav_data["日期"] = pd.to_datetime(nav_data["日期"])
