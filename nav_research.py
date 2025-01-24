@@ -349,7 +349,7 @@ class NavResearch:
             <html>
                 <head>
                     <meta charset="UTF-8">
-                    <title>Value over Time</title>
+                    <title>{self.fund_name}</title>
                     <style>
                         body {{
                                 font-family: Arial, sans-serif;
