@@ -208,19 +208,17 @@ class NavResearch:
         # 转换百分比为字符串
         year_return_table[f"{self.fund_name}_收益"] = year_return_table[
             f"{self.fund_name}_收益"
-        ].apply(lambda x: f"{x:.2%}")
+        ].map("{:.2%}".format)
         year_return_table[f"{self.benchmark_name}_收益"] = year_return_table[
             f"{self.benchmark_name}_收益"
-        ].apply(lambda x: f"{x:.2%}")
+        ].map("{:.2%}".format)
         year_return_table[f"{self.fund_name}_最大回撤"] = year_return_table[
             f"{self.fund_name}_最大回撤"
-        ].apply(lambda x: f"{x:.2%}")
+        ].map("{:.2%}".format)
         year_return_table[f"{self.benchmark_name}_最大回撤"] = year_return_table[
             f"{self.benchmark_name}_最大回撤"
-        ].apply(lambda x: f"{x:.2%}")
-        year_return_table["超额收益"] = year_return_table["超额收益"].apply(
-            lambda x: f"{x:.2%}"
-        )
+        ].map("{:.2%}".format)
+        year_return_table["超额收益"] = year_return_table["超额收益"].map("{:.2%}".format)
         # 不转换百分比为字符串，而是使用style来格式化输出
         """
         def format_percentages(val):
