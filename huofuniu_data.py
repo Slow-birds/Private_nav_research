@@ -2,7 +2,6 @@ import requests
 import pandas as pd
 from pathlib import Path
 import time
-import os
 
 class NavData:
     def __init__(self, fund_name, fund_coding):
