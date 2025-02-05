@@ -11,7 +11,7 @@ def multi_fund_comparison(tables,fund_name):
     data2 = tables[1].head(1)
     data3 = pd.DataFrame()
     data4 = tables[2]
-    years = [2019, 2020, 2021, 2022, 2023, 2024,2025]
+    years = [2019, 2020, 2021, 2022, 2023, 2024, 2025]
     for year in years:
         data3[f"{year}收益"] = data4.loc[data4["分年度业绩"] == year, f"{fund_name}_收益"].values
         data3[f"{year}最大回撤"] = data4.loc[data4["分年度业绩"] == year, f"{fund_name}_最大回撤"].values
@@ -20,7 +20,7 @@ def multi_fund_comparison(tables,fund_name):
     return data
 
 data = pd.DataFrame()
-files_list_series = pd.Series([i for i in Path("./data").rglob("*.xlsx")])
+files_list_series = pd.Series([i for i in Path("./data").rglob("*.csv")])
 for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
     assert len(nav_df_path) == 1, "找到多个文件"
