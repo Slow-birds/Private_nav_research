@@ -1,8 +1,8 @@
 from nav_research import NavResearch
 
-data_path = "华山一号净值表_均泰基金管理员_20250123131540671.xlsx"
-strategy = "ETF套利"
-fund_name = "华山一号"
+data_path = "data\旌安1号_2024-12-24.csv"
+strategy = "套利"
+fund_name = "旌安1号"
 benchmark_code = "H11009.CSI"
 benchmark_name = "中证综合债"
 threshold = -0.05
