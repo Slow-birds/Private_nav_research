@@ -1,6 +1,6 @@
 from nav_research import NavResearch
 
-data_path = "data\旌安1号_2024-12-24.csv"
+data_path = "data\旌安1号_2025-02-07.csv"
 strategy = "套利"
 fund_name = "旌安1号"
 benchmark_code = "H11009.CSI"

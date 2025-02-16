@@ -9,64 +9,24 @@ from pyecharts.charts import Line
 import pyecharts.options as opts
 from typing import Literal
 from WindPy import w
-
 w.start()
 
-
-# 时间格式转换
-def format_date(
-    date: Union[datetime.datetime, datetime.date, np.datetime64, int, str]
-) -> Series | Timestamp:
-    """
-    输出格式为 pd.Timestamp, 等同于 np.datetime64
-    如果想要str格式, 即调用format_date(***).strftime('%Y-%m-%d')
-    """
-    if isinstance(date, datetime.datetime):
-        return pd.to_datetime(date.date())
-    elif isinstance(date, datetime.date):
-        return pd.to_datetime(date)
-    elif isinstance(date, np.datetime64):
-        return pd.to_datetime(date)
-    elif isinstance(date, int):
-        date = pd.to_datetime(date, format="%Y%m%d")
-        return date
-    elif isinstance(date, str):
-        date = pd.to_datetime(date)
-        return pd.to_datetime(date.date())
-    else:
-        raise TypeError("date should be str, int or timestamp!")
-
-
 # 加载数据
-def load_data(df_path):
+def load_data(df_path: str) -> pd.DataFrame:
     df_path = Path(df_path)
     file_suffix = df_path.suffix
     if file_suffix in [".csv"]:
         df = pd.read_csv(df_path, encoding="utf-8")
     elif file_suffix in [".xls", ".xlsx"]:
         df = pd.read_excel(df_path)
+    elif file_suffix in [".txt"]:
+        df = pd.read_csv(df_path, delimiter=" ")
     else:
-        print("非CSV或Excel格式的文件")
+        raise ValueError(f"不支持的文件格式：{file_suffix}")
     return df
 
-
-# 求复权净值(nav_adjusted)
-def get_nav_adjusted(nav_df):
-    nav_df = nav_df.copy()
-    nav_df["nav_adjusted"] = np.nan
-    nav_df.loc[0, "nav_adjusted"] = 1
-    for i in range(1, len(nav_df)):
-        nav_adjusted_new = (
-            nav_df.loc[i, "nav_accumulated"] - nav_df.loc[i - 1, "nav_accumulated"]
-        ) / nav_df.loc[i - 1, "nav_unit"] + 1
-        nav_adjusted_new *= nav_df.loc[i - 1, "nav_adjusted"]
-        nav_df.loc[i, "nav_adjusted"] = nav_adjusted_new
-        nav_df = nav_df[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]]
-    return nav_df
-
-
 # 净值数据标准化
-def get_standardized_data(nav_df):
+def get_standardized_data(nav_df: pd.DataFrame) -> pd.DataFrame:
     # 规范净值数据列名
     if "净值日期" in nav_df.columns:
         nav_df = nav_df.rename(columns={"净值日期": "日期"})
@@ -74,8 +34,6 @@ def get_standardized_data(nav_df):
     if "累计单位净值" in nav_df.columns:
         nav_df = nav_df.rename(columns={"累计单位净值": "累计净值"})
     assert "累计净值" in nav_df.columns, "Error: 未找到累计净值列"
-    if "复权单位净值" in nav_df.columns:
-        nav_df = nav_df.rename(columns={"复权单位净值": "复权净值"})
     # 检查是否有日期/累计净值为空的数据
     assert nav_df["日期"].isnull().sum() == 0, "Error: 净值数据中存在日期为空的数据"
     assert (
@@ -92,28 +50,37 @@ def get_standardized_data(nav_df):
         nav_df["日期"] = pd.to_datetime(nav_df["日期"])
     # 排序
     nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
-    
     nav_df.rename(
         columns={"日期": "date", "单位净值": "nav_unit", "累计净值": "nav_accumulated"},
         inplace=True,
     )
-    if "复权净值" in nav_df.columns:
-        nav_df.rename(columns={"复权净值": "nav_adjusted"}, inplace=True)
-    else:
-        nav_df = get_nav_adjusted(nav_df)
-    nav_df = nav_df[["date", "nav_unit", "nav_accumulated","nav_adjusted"]]
+    # 归一化
+    nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"].iloc[0]
+    nav_df["nav_accumulated"] = nav_df["nav_accumulated"] / nav_df["nav_accumulated"].iloc[0]
     # 保留小数点后4位
     nav_df = nav_df.round(4)
     return nav_df
 
+# 求复权净值(nav_adjusted)
+def get_nav_adjusted(nav_df: pd.DataFrame) -> pd.DataFrame:
+    nav_df = nav_df.copy()
+    nav_df["nav_adjusted"] = np.nan
+    nav_df.loc[0, "nav_adjusted"] = 1
+    for i in range(1, len(nav_df)):
+        nav_df.loc[i, "nav_adjusted"] = (
+            (nav_df.loc[i, "nav_accumulated"] - nav_df.loc[i - 1, "nav_accumulated"])
+            / nav_df.loc[i - 1, "nav_unit"]
+            + 1
+        ) * nav_df.loc[i - 1, "nav_adjusted"]
+    nav_df = nav_df[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]]
+    return nav_df
 
-def get_date_range(nav_df):
+def get_date_range(nav_df:pd.DataFrame) -> Tuple[str, str]:
     start_day = nav_df["date"].min().strftime("%Y-%m-%d")
     end_day = nav_df["date"].max().strftime("%Y-%m-%d")
     return start_day, end_day
 
-
-def infer_frequency(fund_name, nav_df):
+def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
     date = nav_df["date"].values
     # 如果大部分日期间隔为 1 天，那么数据可能是日度的
     if (np.diff(date) == np.timedelta64(1, "D")).mean() > 0.75:
@@ -123,7 +90,6 @@ def infer_frequency(fund_name, nav_df):
     else:
         print(f"{fund_name}无法推断频率,自动转为周度")
         return "W"
-
 
 def generate_trading_date(
     begin_date: np.datetime64 = np.datetime64("2015-01-01"),
@@ -195,6 +161,7 @@ def get_benchmark_data(code, start_day, end_day):
     benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
     return benchmark_df
 
+
 def calc_nav_rtn(nav: np.ndarray, types: Literal["log", "simple"] = "log"):
     if types == "simple":
         rtn = nav[1:] / nav[:-1] - 1
@@ -204,12 +171,13 @@ def calc_nav_rtn(nav: np.ndarray, types: Literal["log", "simple"] = "log"):
         raise ValueError("types参数错误")
     return np.insert(rtn, 0, np.nan)
 
+
 def win_ratio_stastics(nav: np.ndarray, date: np.ndarray[np.datetime64]):
     """
     目前只支持月度胜率统计
     """
     assert len(nav) == len(date), "nav和date长度不一致"
-    
+
     nav_data = pd.DataFrame({"日期": date, "累计净值": nav})
     # 找到日期序列中每个月的最后一天
     nav_data["year_month"] = nav_data["日期"].dt.to_period("M")
@@ -240,9 +208,12 @@ def win_ratio_stastics(nav: np.ndarray, date: np.ndarray[np.datetime64]):
         monthly_rtn[col] = monthly_rtn[col].map(lambda x: f"{x:.2%}")
 
     # 将NAN变成NULL
-    if (monthly_rtn.iloc[0, :] == "nan%").sum() + 3 == monthly_rtn.shape[1] and monthly_rtn.iloc[0, monthly_rtn.shape[1] - 3] == "0.000%":
+    if (monthly_rtn.iloc[0, :] == "nan%").sum() + 3 == monthly_rtn.shape[
+        1
+    ] and monthly_rtn.iloc[0, monthly_rtn.shape[1] - 3] == "0.000%":
         monthly_rtn = monthly_rtn.iloc[1:]
     return monthly_rtn.replace("nan%", "")
+
 
 def get_nav_lines(df, fund_name, benchmark_name):
 
@@ -425,6 +396,31 @@ def calculate_annual_metrics(df, fund_name, benchmark_code, benchmark_name):
         )
         year_return = pd.concat([year_return, new_row], ignore_index=True)
     return year_return
+
+
+# 时间格式转换
+def format_date(
+    date: Union[datetime.datetime, datetime.date, np.datetime64, int, str]
+) -> pd.Timestamp:
+    """
+    输出格式为 pd.Timestamp, 等同于 np.datetime64
+    如果想要str格式, 即调用format_date(***).strftime('%Y-%m-%d')
+    """
+    if isinstance(date, datetime.datetime):
+        return pd.to_datetime(date.date())
+    elif isinstance(date, datetime.date):
+        return pd.to_datetime(date)
+    elif isinstance(date, np.datetime64):
+        return pd.to_datetime(date)
+    elif isinstance(date, int):
+        date = pd.to_datetime(date, format="%Y%m%d")
+        return date
+    elif isinstance(date, str):
+        date = pd.to_datetime(date)
+        return pd.to_datetime(date.date())
+    else:
+        raise TypeError("date should be str, int or timestamp!")
+
 
 # import os
 # data = pd.read_excel(r"C:\Users\17820\Desktop\Private_nav_research\nav_data\私募产品净值数据.xlsx")

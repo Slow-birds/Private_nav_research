@@ -40,12 +40,10 @@ class NavResearch:
 
     # df_nav, df_return, df_drawdown
     def get_data(self):
-        # 读取净值数据并标准化
+        # 净值数据读取、标准化、求复权净值
         nav_df = load_data(self.nav_data_path)
         nav_df = get_standardized_data(nav_df)
-        nav_df.set_index("date", inplace=True)
-        nav_df = nav_df.div(nav_df.iloc[0])
-        nav_df.reset_index(inplace=True)
+        nav_df = get_nav_adjusted(nav_df)
         # 日期规范前的start_day, end_day
         start_day, end_day = get_date_range(nav_df)
         # 日期规范
