@@ -7,7 +7,8 @@ class NavData:
     def __init__(self, fund_name, fund_coding):
         self.fund_name = fund_name
         self.fund_coding = fund_coding
-        self.token = "b80e7f84dec465d910073c99aea0c4ffbc64c7587cb005b5dfe9cbd767028d74dcff01e9e093d23385a27848395b0551"
+        self.token = "be154b690f1e1f943cfd04b13c8a0ddada4241d2b7c67b4f1e932e3294d655cea6692cc19a6d7738ee111bf447b2080f"
+        #self.token = "b80e7f84dec465d910073c99aea0c4ffbc64c7587cb005b5dfe9cbd767028d74dcff01e9e093d23385a27848395b0551"
     def delete_csv_file(self):
         for csv_file in Path("./data").glob(f"{self.fund_name}_*.csv"):
             csv_file.unlink()

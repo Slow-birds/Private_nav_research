@@ -1,28 +1,32 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from WindPy import w
+
 w.start()
 from function import *
 from nav_research import NavResearch
 from pathlib import Path
 import os
 import warnings
-warnings.filterwarnings("ignore")
-warnings.simplefilter('ignore')
 
-plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']
-plt.rcParams['axes.unicode_minus'] = False
+warnings.filterwarnings("ignore")
+warnings.simplefilter("ignore")
+
+plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]
+plt.rcParams["axes.unicode_minus"] = False
 
 print("项目开始------------------------------------------------")
 basic_info = load_data("产品目录.xlsx")
 
 print("开始删除html文件")
+
+
 def delete_html_files(directory):
     # 遍历目录及其子目录
     for root, dirs, files in os.walk(directory):
         for file in files:
             # 检查文件是否以.html 结尾
-            if file.endswith('.html'):
+            if file.endswith(".html"):
                 file_path = os.path.join(root, file)
                 try:
                     # 删除文件
@@ -31,27 +35,35 @@ def delete_html_files(directory):
                 except Exception as e:
                     print(f"Error deleting {file_path}: {e}")
 
+
 directory_to_clean = "docs"
 delete_html_files(directory_to_clean)
 
 print("开始生成新的html文件")
-files_list_series = pd.Series([i for i in Path("./data").rglob("*.csv")])
+files_list_series = pd.Series(
+    [i for i in Path("./data").rglob("*") if i.suffix.lower() in {".csv", ".xlsx"}]
+)
 for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
+    print(f"开始处理{row[3]}")
     assert len(nav_df_path) == 1, "找到多个文件"
-    demo = NavResearch(nav_df_path.item(),row[0],row[3],row[4],row[5],row[6])
+    demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
     demo.get_data()
     demo.get_analysis_table()
     demo.get_html()
 
 print("开始生成index.html")
+
+
 def generate_index_html(folder_path: Path):
     # 获取目录及其子目录中的所有 HTML 文件
     html_files = list(folder_path.rglob("*.html"))
     # 创建一个集合来存储所有唯一的文件夹路径（不包括 index.html 所在的文件夹）
-    unique_folders = {html_file.parent for html_file in html_files if html_file.name != "index.html"}
+    unique_folders = {
+        html_file.parent for html_file in html_files if html_file.name != "index.html"
+    }
     # 定义排序顺序
-    sorted_folder_names = ["主观CTA", "量化CTA", "套利","期权","其他"]
+    sorted_folder_names = ["主观CTA", "量化CTA", "套利", "期权", "其他"]
     # 创建一个新的 index.html 文件
     with open(folder_path.joinpath("index.html"), "w", encoding="utf-8") as f:
         f.write(
@@ -89,9 +101,12 @@ def generate_index_html(folder_path: Path):
                     if html_file.parent == folder_path_obj:
                         cleaned_name = html_file.name.replace("_nav_analysis", "")
                         relative_path = html_file.relative_to(folder_path)
-                        f.write(f'<li><a href="{relative_path}" target="_blank">{cleaned_name}</a></li>\n')
+                        f.write(
+                            f'<li><a href="{relative_path}" target="_blank">{cleaned_name}</a></li>\n'
+                        )
                 f.write("</ul>\n")
         f.write("</body>\n</html>")
+
 
 generate_index_html(Path("docs"))
 
