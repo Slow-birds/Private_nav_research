@@ -61,7 +61,7 @@ def get_standardized_data(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df = nav_df.round(4)
     return nav_df
 
-# 求复权净值(nav_adjusted)
+# 求复权净值
 def get_nav_adjusted(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df = nav_df.copy()
     nav_df["nav_adjusted"] = np.nan
@@ -75,14 +75,15 @@ def get_nav_adjusted(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df = nav_df[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]]
     return nav_df
 
+# 求日期范围
 def get_date_range(nav_df:pd.DataFrame) -> Tuple[str, str]:
     start_day = nav_df["date"].min().strftime("%Y-%m-%d")
     end_day = nav_df["date"].max().strftime("%Y-%m-%d")
     return start_day, end_day
 
+# 日期频率推断
 def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
     date = nav_df["date"].values
-    # 如果大部分日期间隔为 1 天，那么数据可能是日度的
     if (np.diff(date) == np.timedelta64(1, "D")).mean() > 0.75:
         return "D"
     elif (np.diff(date) >= np.timedelta64(5, "D")).mean() > 0.75:
@@ -91,6 +92,7 @@ def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
         print(f"{fund_name}无法推断频率,自动转为周度")
         return "W"
 
+# 生成交易日
 def generate_trading_date(
     begin_date: np.datetime64 = np.datetime64("2015-01-01"),
     end_date: np.datetime64 = np.datetime64("today"),
@@ -123,7 +125,6 @@ def generate_trading_date(
             trading_date_df[trading_date_df["is_friday"]]["trading_date"].values[1:]
         ).astype("datetime64[D]"),
     )
-
 
 def match_data(
     nav_data: pd.DataFrame,
@@ -403,7 +404,7 @@ def format_date(
     date: Union[datetime.datetime, datetime.date, np.datetime64, int, str]
 ) -> pd.Timestamp:
     """
-    输出格式为 pd.Timestamp, 等同于 np.datetime64
+    输出格式为pd.Timestamp, 等同于 np.datetime64
     如果想要str格式, 即调用format_date(***).strftime('%Y-%m-%d')
     """
     if isinstance(date, datetime.datetime):
