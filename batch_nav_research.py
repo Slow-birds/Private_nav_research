@@ -18,8 +18,7 @@ plt.rcParams["axes.unicode_minus"] = False
 print("项目开始------------------------------------------------")
 basic_info = load_data("产品目录.xlsx")
 
-print("开始删除html文件")
-
+print("开始删除旧的html文件")
 
 def delete_html_files(directory):
     # 遍历目录及其子目录
@@ -41,11 +40,10 @@ delete_html_files(directory_to_clean)
 
 print("开始生成新的html文件")
 files_list_series = pd.Series(
-    [i for i in Path("./data").rglob("*") if i.suffix.lower() in {".csv", ".xlsx"}]
+    [i for i in Path("./data").rglob("*") if i.suffix.lower() in {".csv", ".xlsx", ".xls"}]
 )
 for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
-    print(f"开始处理{row[3]}")
     assert len(nav_df_path) == 1, "找到多个文件"
     demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
     demo.get_data()
