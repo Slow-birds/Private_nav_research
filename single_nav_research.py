@@ -1,8 +1,8 @@
 from nav_research import NavResearch
 
-data_path = "简雍斯量先锋私募证券投资基金_净值序列_20250218.xlsx"
+data_path = r"temporary_data\SJV784_文谛量化多策略十号私募证券投资基金A净值数据_2021-08-04_2025-03-04.xlsx"
 strategy = "量化CTA"
-fund_name = "简雍斯量先锋"
+fund_name = "文谛量化多策略十号A"
 benchmark_code = "NH0100.NHF"
 benchmark_name = "南华商品指数"
 threshold = -0.05
