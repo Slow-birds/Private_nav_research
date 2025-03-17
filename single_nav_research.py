@@ -1,10 +1,10 @@
 from nav_research import NavResearch
 
-data_path = r"temporary_data\SJV784_文谛量化多策略十号私募证券投资基金A净值数据_2021-08-04_2025-03-04.xlsx"
-strategy = "量化CTA"
-fund_name = "文谛量化多策略十号A"
-benchmark_code = "NH0100.NHF"
-benchmark_name = "南华商品指数"
+data_path = r"temporary_data\SVW768_添禄量化股票策略1号私募证券投资基金净值数据_2022-06-30_2025-03-13.xlsx"
+strategy = "市场中性"
+fund_name = "添禄量化股票策略1号"
+benchmark_code = "885007.WI"
+benchmark_name = "万得混合债券型二级指数"
 threshold = -0.05
 
 demo = NavResearch(data_path,strategy,fund_name,benchmark_code,benchmark_name,threshold)

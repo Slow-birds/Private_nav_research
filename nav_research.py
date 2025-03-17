@@ -175,7 +175,7 @@ class NavResearch:
         ) / excess_annual_volatility
         nav_ratio_table = pd.DataFrame(
             {
-                "整体业绩": ["绝对收益", "超额收益"],
+                "整体业绩": ["产品收益", "超额收益"],
                 "总收益率": [
                     format(total_return, ".2%"),
                     format(excess_total_return, ".2%"),
