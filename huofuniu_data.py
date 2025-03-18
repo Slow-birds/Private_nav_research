@@ -2,9 +2,11 @@ import requests
 import pandas as pd
 from pathlib import Path
 import time
+import random
 
 class NavData:
-    def __init__(self, fund_name, fund_coding):
+    def __init__(self, fund_code, fund_name, fund_coding):
+        self.fund_code = fund_code
         self.fund_name = fund_name
         self.fund_coding = fund_coding
         self.token = "be154b690f1e1f943cfd04b13c8a0ddada4241d2b7c67b4f1e932e3294d655cea6692cc19a6d7738ee111bf447b2080f"
@@ -32,7 +34,7 @@ class NavData:
         ).drop(columns=["e_pc"])
         nav_data = nav_data[["日期", "单位净值", "累计净值", "复权净值"]]
         nav_data["日期"] = pd.to_datetime(nav_data["日期"])
-        path = Path(rf"data/{self.fund_name}_{nav_data["日期"].max().strftime("%Y-%m-%d")}.csv")
+        path = Path(rf"data/{self.fund_code}_{self.fund_name}_{nav_data["日期"].max().strftime("%Y-%m-%d")}.csv")
         nav_data.to_csv(
             path,
             index=False,
@@ -44,8 +46,8 @@ class NavData:
 if __name__ == "__main__":
     fund_info = pd.read_csv('fund_list.txt', delimiter=' ')
     for row in fund_info.itertuples(index=False, name=None):
-        demo = NavData(row[0], row[1])
+        demo = NavData(row[0], row[1], row[2])
         demo.delete_csv_file()
         demo.get_nav_data()
-        time.sleep(2)
+        time.sleep(random.uniform(0.5, 1.5))
     print("所有产品净值爬取完成")

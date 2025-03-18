@@ -43,8 +43,8 @@ files_list_series = pd.Series(
     [i for i in Path("./data").rglob("*") if i.suffix.lower() in {".csv", ".xlsx", ".xls"}]
 )
 for row in basic_info.itertuples(index=False, name=None):
-    nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
-    assert len(nav_df_path) == 1, "找到多个文件"
+    nav_df_path = files_list_series[files_list_series.apply(lambda x: row[2] in x.stem)]
+    assert len(nav_df_path) == 1, "没有找到文件或者找到多个文件"
     demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
     demo.get_data()
     demo.get_analysis_table()

@@ -222,8 +222,8 @@ def get_nav_lines(df, fund_name, benchmark_name):
     ys_data = (
         (df.drop(columns=["date", "nav_unit", "nav_accumulated"], axis=1) - 1) * 100
     ).round(2)
-    min_data = (ys_data.values.min() - 0.1 * abs(ys_data.values.min())).round()
-    max_data = (ys_data.values.max() + 0.1 * abs(ys_data.values.max())).round()
+    min_data = round((ys_data.values.min() - 0.1 * abs(ys_data.values.min())))
+    max_data = round((ys_data.values.max() + 0.1 * abs(ys_data.values.max())))
     names = [
         f"{fund_name}_累计收益(%)",
         f"{benchmark_name}_累计收益(%)",
