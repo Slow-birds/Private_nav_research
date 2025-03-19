@@ -64,7 +64,10 @@ class NavResearch:
         # 获取基准数据
         benchmark_df = get_benchmark_data(self.benchmark_code, start_day_t, end_day_t)
         # df_nav
-        df = pd.merge(nav_df, benchmark_df, on="date", how="right")
+        df = pd.merge(nav_df, benchmark_df, on="date", how="left")
+        # 剔除空值行
+        df = df.dropna()
+        df = df.reset_index(drop=True)
         df["excess_nav"] = df["nav_adjusted"] - df[self.benchmark_code] + 1
         df_nav = df[
             [
