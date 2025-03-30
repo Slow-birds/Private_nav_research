@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 from pathlib import Path
 from function import load_data
@@ -102,7 +103,7 @@ def update_nav_df(nav_dfs, fund_info):
         filtered_df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"Creat:{fundcode}_{fund_name}_{start_date}_{end_date}.csv")
 
-# 获取多基金对比数据
+# 获取单基金指标
 def single_fund_table(tables, fund_name):
     data1 = tables[0]
     data2 = tables[1].head(1)
@@ -117,7 +118,6 @@ def single_fund_table(tables, fund_name):
     data.drop(columns=["基准指数", "整体业绩"], inplace=True)
     return data
 
-# 生成可视化表格report_data.xlsx
 def get_report_data(fund_info):
     data = pd.DataFrame()
     files_list_series = pd.Series(
@@ -128,39 +128,46 @@ def get_report_data(fund_info):
         ]
     )
     for row in fund_info.itertuples(index=False, name=None):
-        nav_df_path = files_list_series[
-            files_list_series.apply(lambda x: row[1] in x.stem)
-        ]
-        assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
-        demo = NavResearch(nav_df_path.item(), row[0], row[2], row[3], row[4], row[5])
-        demo.get_data()
+        # 找到对应的文件路径，确保唯一
+        nav_df_path_mask = files_list_series.apply(lambda x: row[1] in x.stem)
+        nav_df_paths = files_list_series[nav_df_path_mask]
+        if len(nav_df_paths) != 1:
+            raise ValueError(f"找到 {len(nav_df_paths)} 个文件匹配 {row[1]}，期望找到 1 个")
+        nav_df_path = nav_df_paths.iloc[0]
+        # 假设 NavResearch 是一个类，初始化并获取数据
+        demo = NavResearch(nav_df_path, row[0], row[2], row[3], row[4], row[5])
+        df_nav, df_return, df_drawdown = demo.get_data()
         tables = demo.get_analysis_table()
         nav_df = single_fund_table(tables, row[2])
+        # 添加策略类型
         nav_df["策略类型"] = row[0]
+        # 增加近一周收益列
+        if len(df_nav["nav_adjusted"]) >= 2:
+            nav_df["近一周收益"] = f"{(df_nav['nav_adjusted'].iloc[-1] / df_nav['nav_adjusted'].iloc[-2] - 1):.2%}"
+        else:
+            nav_df["近一周收益"] = np.nan
+        # 特定基金产品设置为 NaN
+        specific_list = ["景林景泰优选GJ2期", "景林精选FOF子基金GJ2期", "景林景泰丰收GJ2期", "千宜乐享精选CTA2号"]
+        nav_df.loc[nav_df["基金产品"].isin(specific_list), "近一周收益"] = np.nan
+        # 自定义排序列顺序
         cols = ["策略类型"] + [col for col in nav_df.columns if col != "策略类型"]
         nav_df = nav_df[cols]
-        data = pd.concat([data, nav_df], axis=0)
-        data["2025收益数值"] = data["2025收益"].str.rstrip('%').astype(float) / 100
-        # 指定策略类型的自定义顺序
-        custom_order = [
-            "灵活配置",
-            "主观成长",
-            "主观价值",
-            "主观逆向",
-            "300指增",
-            "500指增",
-            "1000指增",
-            "小市值指增",
-            "量化选股",
-            "市场中性",
-            "套利",
-            "CTA",
-            "多策略",
-            "其他",
-        ]
-        data["策略类型"] = pd.Categorical(data["策略类型"], categories=custom_order, ordered=True)
-        data.sort_values(by=["策略类型", "2025收益数值"], ascending=[True, False], inplace=True)
-        data.drop(columns=["2025收益数值"], inplace=True)
+        # 合并数据，使用 ignore_index=True 避免索引重复问题
+        data = pd.concat([data, nav_df], axis=0, ignore_index=True)
+    # 处理 2025收益 列为数值类型
+    data["2025收益数值"] = data["2025收益"].str.rstrip('%').astype(float) / 100
+    # 指定策略类型的自定义顺序
+    custom_order = [
+        "灵活配置", "主观成长", "主观价值", "主观逆向", "300指增", "500指增", "1000指增", "小市值指增", 
+        "量化选股", "市场中性", "套利", "CTA", "多策略", "其他"
+    ]
+    data["策略类型"] = pd.Categorical(data["策略类型"], categories=custom_order, ordered=True)
+    # 排序并删除临时列
+    data.sort_values(by=["策略类型", "2025收益数值"], ascending=[True, False], inplace=True)
+    data.drop(columns=["2025收益数值"], inplace=True)
+    # 重命名列
+    data.rename(columns={"净值起始日期": "成立日期", "净值结束日期": "最新净值日期"}, inplace=True)
+    # 保存到 Excel
     data.to_excel("report_data.xlsx", index=False)
 
 # 主程序
