@@ -8,11 +8,10 @@ from tqdm import tqdm
 
 # 删除csv文件(辅助函数)
 def delete_csv_files(directory):
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(".csv"):
-                os.remove(os.path.join(root, file))
-                print(f"Deleted: {file}")
+    dir_path = Path(directory)
+    for csv_file in dir_path.rglob("*.csv"):
+        csv_file.unlink()
+        print(f"Deleted: {csv_file.name}")
 
 # 初次生成nav_dfs.csv(后续不需执行)
 def get_nav_dfs(fund_info):
@@ -82,8 +81,6 @@ def update_nav_dfs(nav_df):
 # 生成单基金净值数据
 def update_nav_df(nav_dfs, fund_info):
     fundcode_list = fund_info["基金代码"].unique().tolist()
-    # 确保输出目录存在
-    os.makedirs("nav_data", exist_ok=True)
     # 检查日期列的类型，如果不是 datetime 类型，则转换为 datetime 类型
     if nav_dfs["日期"].dtype != "datetime64[ns]":
         nav_dfs["日期"] = pd.to_datetime(nav_dfs["日期"], format="%Y-%m-%d")
@@ -102,7 +99,7 @@ def update_nav_df(nav_dfs, fund_info):
             "nav_dfs", f"{fundcode}_{fund_name}_{start_date}_{end_date}.csv"
         )
         filtered_df.to_csv(file_path, index=False, encoding="utf-8-sig")
-        print(f"Creat:{fundcode}_{fund_name}_{start_date}_{end_date}.csv")
+        print(f"Created:{fundcode}_{fund_name}_{start_date}_{end_date}.csv")
 
 # 获取单基金指标
 def single_fund_table(tables, fund_name):
@@ -162,7 +159,6 @@ def get_report_data(fund_info):
     # 保存到 Excel
     with pd.ExcelWriter("report_data.xlsx", engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
         data.to_excel(writer, sheet_name='Sheet2', index=False)
-    # data.to_excel("report_data.xlsx", index=False)
 
 # 主程序
 if __name__ == "__main__":
