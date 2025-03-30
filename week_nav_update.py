@@ -4,6 +4,7 @@ import pandas as pd
 from pathlib import Path
 from function import load_data
 from nav_research import NavResearch
+from tqdm import tqdm
 
 # 删除csv文件(辅助函数)
 def delete_csv_files(directory):
@@ -127,7 +128,7 @@ def get_report_data(fund_info):
             if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
         ]
     )
-    for row in fund_info.itertuples(index=False, name=None):
+    for row in tqdm(fund_info.itertuples(index=False, name=None), desc="Processing funds", total=len(fund_info)):
         # 找到对应的文件路径，确保唯一
         nav_df_path_mask = files_list_series.apply(lambda x: row[1] in x.stem)
         nav_df_paths = files_list_series[nav_df_path_mask]

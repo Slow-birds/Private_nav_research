@@ -89,7 +89,7 @@ def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
     elif (np.diff(date) >= np.timedelta64(5, "D")).mean() > 0.75:
         return "W"
     else:
-        print(f"{fund_name}无法推断频率,自动转为周度")
+        # print(f"{fund_name}无法推断频率,自动转为周度")
         return "W"
 
 # 生成交易日
