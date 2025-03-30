@@ -133,11 +133,12 @@ def get_report_data(fund_info):
         nav_df = single_fund_table(tables, row[2])
         # 添加策略类型、近一周收益列（特定基金产品设置为 NaN）
         nav_df["策略类型"] = row[0]
+        nav_df["基金代码"] = row[1]
         nav_df["近一周收益"] = (f"{(df_nav['nav_adjusted'].iloc[-1] / df_nav['nav_adjusted'].iloc[-2] - 1):.2%}")
         specific_list = ["景林景泰优选GJ2期","景林精选FOF子基金GJ2期","景林景泰丰收GJ2期","千宜乐享精选CTA2号"]
         nav_df.loc[nav_df["基金产品"].isin(specific_list), "近一周收益"] = np.nan
         # 自定义排序列顺序
-        cols = ["策略类型"] + [col for col in nav_df.columns if col != "策略类型"]
+        cols = ["策略类型", "基金代码"] + [col for col in nav_df.columns if col not in ["策略类型", "基金代码"]]
         nav_df = nav_df[cols]
         # 合并数据，使用 ignore_index=True 避免索引重复问题
         data = pd.concat([data, nav_df], axis=0, ignore_index=True)
