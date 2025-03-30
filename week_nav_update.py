@@ -35,7 +35,7 @@ def get_nav_dfs(fund_info):
         nav_dfs = pd.concat([nav_dfs, nav_df], ignore_index=True)
     nav_dfs.to_csv("nav_dfs.csv", index=False, encoding="utf-8-sig")
 
-# 获取需要更新的数据nav_df
+# 获取最新一期净值数据 nav_df
 def get_new_nav(data_path, fund_info):
     fundcode_list = fund_info["基金代码"].tolist()
     df1 = pd.read_excel(data_path, sheet_name="私募产品")
@@ -70,7 +70,7 @@ def get_new_nav(data_path, fund_info):
     nav_df["基金名称"] = nav_df["基金代码"].map(fund_name_map)
     return nav_df
 
-# 更新nav_dfs.csv
+# 更新 nav_dfs.csv
 def update_nav_dfs(nav_df):
     nav_dfs = pd.read_csv("nav_dfs.csv")
     nav_dfs = pd.concat([nav_dfs, nav_df], axis=0, ignore_index=True)
@@ -79,7 +79,7 @@ def update_nav_dfs(nav_df):
     nav_dfs.to_csv("nav_dfs.csv", index=False, encoding="utf-8-sig")
     return nav_dfs
 
-# 生成单一净值数据
+# 生成单基金净值数据
 def update_nav_df(nav_dfs, fund_info):
     fundcode_list = fund_info["基金代码"].unique().tolist()
     # 确保输出目录存在
@@ -119,36 +119,24 @@ def single_fund_table(tables, fund_name):
     data.drop(columns=["基准指数", "整体业绩"], inplace=True)
     return data
 
-# 获取report_data
+# 获取多基金指标对比表 report_data.xlsx
 def get_report_data(fund_info):
     data = pd.DataFrame()
-    files_list_series = pd.Series(
-        [
-            i
-            for i in Path("./nav_dfs").rglob("*")
-            if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
-        ]
-    )
+    files_list_series = pd.Series([i for i in Path("./nav_dfs").rglob("*")if i.suffix.lower() in {".csv", ".xlsx", ".xls"}])
     for row in tqdm(fund_info.itertuples(index=False, name=None),desc="生成多基金对比数据",total=len(fund_info),):
         # 找到对应的文件路径，确保唯一
         nav_df_path_mask = files_list_series.apply(lambda x: row[1] in x.stem)
         nav_df_paths = files_list_series[nav_df_path_mask]
-        if len(nav_df_paths) != 1:
-            raise ValueError(f"找到 {len(nav_df_paths)} 个文件匹配 {row[1]}，期望找到 1 个")
+        assert len(nav_df_paths) == 1, f"找到{len(nav_df_paths)}个文件匹配{row[2]},期望找到1个"
         nav_df_path = nav_df_paths.iloc[0]
         # 假设 NavResearch 是一个类，初始化并获取数据
         demo = NavResearch(nav_df_path, row[0], row[2], row[3], row[4], row[5])
-        df_nav, df_return, df_drawdown = demo.get_data()
+        df_nav, _, _ = demo.get_data()
         tables = demo.get_analysis_table()
         nav_df = single_fund_table(tables, row[2])
-        # 添加策略类型
+        # 添加策略类型、近一周收益列（特定基金产品设置为 NaN）
         nav_df["策略类型"] = row[0]
-        # 增加近一周收益列
-        if len(df_nav["nav_adjusted"]) >= 2:
-            nav_df["近一周收益"] = (f"{(df_nav['nav_adjusted'].iloc[-1] / df_nav['nav_adjusted'].iloc[-2] - 1):.2%}")
-        else:
-            nav_df["近一周收益"] = np.nan
-        # 特定基金产品设置为 NaN
+        nav_df["近一周收益"] = (f"{(df_nav['nav_adjusted'].iloc[-1] / df_nav['nav_adjusted'].iloc[-2] - 1):.2%}")
         specific_list = ["景林景泰优选GJ2期","景林精选FOF子基金GJ2期","景林景泰丰收GJ2期","千宜乐享精选CTA2号"]
         nav_df.loc[nav_df["基金产品"].isin(specific_list), "近一周收益"] = np.nan
         # 自定义排序列顺序
@@ -156,21 +144,15 @@ def get_report_data(fund_info):
         nav_df = nav_df[cols]
         # 合并数据，使用 ignore_index=True 避免索引重复问题
         data = pd.concat([data, nav_df], axis=0, ignore_index=True)
-    # 处理 2025收益 列为数值类型
-    data["2025收益数值"] = data["2025收益"].str.rstrip("%").astype(float) / 100
     # 指定策略类型的自定义顺序
     custom_order = [
         "灵活配置", "主观成长", "主观价值", "主观逆向", 
         "300指增", "500指增", "1000指增", "小市值指增", "量化选股", "市场中性",
         "套利", "CTA", "多策略", "其他"
     ]
-    data["策略类型"] = pd.Categorical(
-        data["策略类型"], categories=custom_order, ordered=True
-    )
-    # 排序并删除临时列
-    data.sort_values(
-        by=["策略类型", "2025收益数值"], ascending=[True, False], inplace=True
-    )
+    data["策略类型"] = pd.Categorical(data["策略类型"], categories=custom_order, ordered=True)
+    data["2025收益数值"] = data["2025收益"].str.rstrip("%").astype(float) / 100
+    data.sort_values(by=["策略类型", "2025收益数值"], ascending=[True, False], inplace=True)
     data.drop(columns=["2025收益数值"], inplace=True)
     # 重命名列
     data.rename(
@@ -179,7 +161,6 @@ def get_report_data(fund_info):
     )
     # 保存到 Excel
     with pd.ExcelWriter("report_data.xlsx", engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-    # 将新数据写入sheet2
         data.to_excel(writer, sheet_name='Sheet2', index=False)
     # data.to_excel("report_data.xlsx", index=False)
 
