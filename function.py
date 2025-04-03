@@ -137,7 +137,7 @@ def match_data(
     first_row = nav_data.iloc[[0]].copy()
     trade_date = trade_date[trade_date >= nav_data["date"].min()]
     nav_data = nav_data.set_index("date")
-    nav_data = nav_data.reindex(trade_date, method="ffill")
+    nav_data = nav_data.reindex(trade_date, method="bfill")
     nav_data = nav_data.reset_index(drop=False)
     combined = pd.concat([nav_data, first_row], ignore_index=True)
     combined = combined.sort_values(by="date")
