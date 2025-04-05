@@ -67,12 +67,13 @@ def get_new_nav(data_path, fund_info):
         inplace=True,
     )
     df4["日期"] = pd.to_datetime(df4["日期"], format="%Y%m%d").dt.strftime("%Y-%m-%d")
+    df4["基金代码"] = df4["基金代码"].astype(str)
     # 合并处理完后的df3、df4
     df5 = pd.concat([df3, df4], ignore_index=True)
     nav_df = df5[df5["基金代码"].isin(fundcode_list)].reset_index(drop=True)
     # 使用map更新"基金名称"列
-    fund_name_map = fund_info.set_index("基金代码")["基金名称"].to_dict()
-    nav_df["基金名称"] = nav_df["基金代码"].map(fund_name_map)
+    fund_name_map = fund_info.set_index('基金代码')['基金名称'].to_dict()
+    nav_df['基金名称'] = nav_df['基金代码'].map(fund_name_map)
     return nav_df
 
 
@@ -153,7 +154,6 @@ def get_report_data(fund_info):
         demo = NavResearch(nav_df_path, row[0], row[2], row[3], row[4], row[5])
         df_nav, _, _ = demo.get_data()
         df_nav[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]].to_csv(nav_df_path, index=False, encoding="utf-8-sig")
-        print(f"{row[2]}数据已更新") 
         tables = demo.get_analysis_table()
         nav_df = single_fund_table(tables, row[2])
         # 添加策略类型、近一周收益列（特定基金产品设置为 NaN）
@@ -217,7 +217,7 @@ def get_report_data(fund_info):
 if __name__ == "__main__":
     fund_info = load_data("产品代码.xlsx")
     fund_info["基金代码"] = fund_info["基金代码"].astype(str)
-    data_path = Path("销售产品业绩表现监控表20250324-20250328.xlsx")
+    data_path = Path("销售产品业绩表现监控表20250317-20250321.xlsx")
     nav_df = get_new_nav(data_path, fund_info)
     nav_dfs = update_nav_dfs(nav_df)
     delete_csv_files("./nav_dfs")

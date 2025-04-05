@@ -125,7 +125,7 @@ def generate_trading_date(
             trading_date_df[trading_date_df["is_friday"]]["trading_date"].values[1:]
         ).astype("datetime64[D]"),
     )
-
+'''
 def match_data(
     nav_data: pd.DataFrame,
     trade_date: np.ndarray[np.datetime64],
@@ -144,7 +144,51 @@ def match_data(
     combined_unique = combined.drop_duplicates()
     combined_unique = combined_unique.reset_index(drop=True)
     return combined_unique
+'''
 
+
+import pandas as pd
+import numpy as np
+
+def match_data(
+    nav_data: pd.DataFrame,
+    trade_date: np.ndarray[np.datetime64],
+) -> pd.DataFrame:
+    """
+    匹配交易日期到最近的净值日期，并保留原始交易日期和匹配到的净值日期。
+    """
+    # 确保 nav_data 的日期是 datetime64[ns] 类型，并重命名列以区分
+    nav_clean = nav_data.copy()
+    nav_clean["nav_date"] = pd.to_datetime(nav_clean["date"])  # 净值日期列
+    nav_clean = nav_clean.drop(columns="date")
+    # 过滤并转换 trade_date 为 datetime64[ns]
+    min_nav_date = nav_clean["nav_date"].min()
+    trade_filtered = trade_date[trade_date >= min_nav_date].astype("datetime64[ns]")
+
+    if len(trade_filtered) == 0:
+        return pd.DataFrame(columns=["trade_date", "nav_date"] + nav_clean.columns.tolist()[1:])
+    # 创建交易日期 DataFrame（明确保留原始交易日期）
+    trade_df = pd.DataFrame({
+        "trade_date": trade_filtered,  # 原始交易日期
+        "original_order": np.arange(len(trade_filtered))
+    })
+    # 按日期排序
+    nav_sorted = nav_clean.sort_values("nav_date")
+    trade_sorted = trade_df.sort_values("trade_date")
+    # 使用 merge_asof 匹配最近的净值日期
+    merged = pd.merge_asof(
+        trade_sorted,          # 用 trade_date 的日期作为基准
+        nav_sorted,           # 匹配 nav_date 的日期
+        left_on="trade_date",  # 左表用交易日期
+        right_on="nav_date",   # 右表用净值日期
+        direction="nearest"   # 向后匹配最近的净值
+    )
+    # 恢复原始顺序并清理辅助列
+    result = merged.sort_values("original_order").drop(columns=["original_order","trade_date"])
+    result= result[["nav_date","nav_unit","nav_accumulated","nav_adjusted"]]
+    result.rename(columns={"nav_date": "date"}, inplace=True)
+    result.reset_index(drop=True)
+    return result
 
 # benchmark data
 def get_benchmark_data(code, start_day, end_day):

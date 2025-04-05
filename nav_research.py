@@ -79,6 +79,7 @@ class NavResearch:
                 "excess_nav",
             ]
         ].round(4)
+        df_nav.drop_duplicates(subset=["date"], inplace=True)
         # df_return
         df["nav_return"] = df["nav_adjusted"].pct_change()
         df["benchmark_return"] = df[self.benchmark_code].pct_change()
