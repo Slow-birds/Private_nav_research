@@ -1,11 +1,13 @@
 import os
 import numpy as np
 import pandas as pd
+import datetime
 from pathlib import Path
 from function import load_data
 from nav_research import NavResearch
 from tqdm import tqdm
-
+from WindPy import w
+w.start()
 
 # 删除csv文件(辅助函数)
 def delete_csv_files(directory):
@@ -128,7 +130,7 @@ def single_fund_table(tables, fund_name):
 
 
 # 获取多基金指标对比表 report_data.xlsx
-def get_report_data(fund_info):
+def get_report_data(fund_info, end_date):
     data = pd.DataFrame()
     files_list_series = pd.Series(
         [
@@ -159,6 +161,7 @@ def get_report_data(fund_info):
         # 添加策略类型、近一周收益列（特定基金产品设置为 NaN）
         nav_df["策略类型"] = row[0]
         nav_df["基金代码"] = row[1]
+        nav_df[f"{end_date.month}月收益"] = tables[4].loc[tables[4]["分月度业绩"] == end_date.year,f"{end_date.month}月"].item()
         nav_df["近一周收益"] = (
             f"{(df_nav['nav_adjusted'].iloc[-1] / df_nav['nav_adjusted'].iloc[-2] - 1):.2%}"
         )
@@ -212,15 +215,43 @@ def get_report_data(fund_info):
     ) as writer:
         data.to_excel(writer, sheet_name="Sheet2", index=False)
 
+def get_index_rtn(month_startdate,week_startdate,end_date):
+    index_code = ["881001.WI","000300.SH", "000905.SH", "000852.SH","8841425.WI","HSTECH.HI","IXIC.GI"]
+    index_name = ["万得全A","中证300", "中证500", "中证1000", "万得小市值指数","恒生科技","纳斯达克"]
+    error_code, rtn_year = w.wss(index_code, "pct_chg_per",startDate="2024-12-30",endDate=end_date,usedf=True)
+    rtn_year.rename(columns={"PCT_CHG_PER": "2025收益"}, inplace=True)
+    rtn_year.index = index_name
+    error_code, rtn_month = w.wss(index_code, "pct_chg_per",startDate=month_startdate,endDate=end_date,usedf=True)
+    rtn_month.rename(columns={"PCT_CHG_PER": "3月收益"}, inplace=True)
+    rtn_month.index = index_name
+    error_code, rtn_week = w.wss(index_code, "pct_chg_per",startDate=week_startdate,endDate=end_date,usedf=True)
+    rtn_week.rename(columns={"PCT_CHG_PER": "近一周收益"}, inplace=True)
+    rtn_week.index = index_name
+    rtn = pd.concat([rtn_year, rtn_month, rtn_week], axis=1)
+    rtn.reset_index(inplace=True)
+    rtn.rename(columns={"index": "指数名称"}, inplace=True)
+    # 保存到 Excel
+    with pd.ExcelWriter(
+        "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
+    ) as writer:
+        rtn.to_excel(writer, sheet_name="Sheet3", index=False)
+    return rtn
 
 # 主程序
 if __name__ == "__main__":
     fund_info = load_data("产品代码.xlsx")
     fund_info["基金代码"] = fund_info["基金代码"].astype(str)
-    data_path = Path("销售产品业绩表现监控表20250317-20250321.xlsx")
+    data_path = Path("销售产品业绩表现监控表20250324-20250328.xlsx")
+    # 辅助日期格式
+    date_str = data_path.stem.split("表")[-1]
+    start_date_str, end_date_str = date_str.split("-")
+    enddate = datetime.datetime.strptime(end_date_str, "%Y%m%d")
+    week_startdate = datetime.datetime.strptime(start_date_str, "%Y%m%d")
+    month_startdate = "2025-03-03"
     nav_df = get_new_nav(data_path, fund_info)
     nav_dfs = update_nav_dfs(nav_df)
     delete_csv_files("./nav_dfs")
     update_nav_df(nav_dfs, fund_info)
-    get_report_data(fund_info)
+    get_report_data(fund_info, enddate)
+    get_index_rtn(month_startdate,week_startdate.strftime("%Y-%m-%d"),enddate.strftime("%Y-%m-%d"))
     print("数据更新完成")
