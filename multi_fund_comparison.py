@@ -28,18 +28,25 @@ def multi_fund_comparison(tables, fund_name):
 
 data = pd.DataFrame()
 files_list_series = pd.Series(
-    [i for i in Path("./data").rglob("*") if i.suffix.lower() in {".csv", ".xlsx",".xls"}]
+    [
+        i
+        for i in Path("./data").rglob("*")
+        if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
+    ]
 )
 for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
     assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
     demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
-    demo.get_data()
+    nav_df, _, _ = demo.get_data()
+    nav_df.to_csv(f"temporary_data/{row[3]}.csv", index=False)
     tables = demo.get_analysis_table()
     nav_df = multi_fund_comparison(tables, row[3])
     data = pd.concat([data, nav_df], axis=0)
 
-with pd.ExcelWriter("data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
-        data.to_excel(writer, sheet_name="huofuniu", index=False)
+with pd.ExcelWriter(
+    "data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
+) as writer:
+    data.to_excel(writer, sheet_name="huofuniu", index=False)
 
 print("数据已保存到data.xlsx")
