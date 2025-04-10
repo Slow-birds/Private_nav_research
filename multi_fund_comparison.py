@@ -3,6 +3,7 @@ from nav_research import NavResearch
 import pandas as pd
 from pathlib import Path
 
+
 basic_info = load_data("产品目录.xlsx")
 # strategy_info = basic_info[basic_info["大类策略"] == "量化CTA"]
 
@@ -38,7 +39,7 @@ for row in basic_info.itertuples(index=False, name=None):
     nav_df = multi_fund_comparison(tables, row[3])
     data = pd.concat([data, nav_df], axis=0)
 
-data.to_excel("data.xlsx", sheet_name="huofuniu", index=False)
-
+with pd.ExcelWriter("data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+        data.to_excel(writer, sheet_name="huofuniu", index=False)
 
 print("数据已保存到data.xlsx")

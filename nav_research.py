@@ -51,7 +51,7 @@ class NavResearch:
         self.freq = freq
         trade_date, weekly_trade_date = generate_trading_date(
             begin_date=np.datetime64(start_day) - np.timedelta64(10, "D"),
-            end_date=np.datetime64(end_day),
+            end_date=np.datetime64(end_day)+ np.timedelta64(5, "D"),
         )
         if self.freq == "D":
             nav_df = match_data(nav_df, trade_date)
