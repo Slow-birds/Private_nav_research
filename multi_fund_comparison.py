@@ -31,14 +31,14 @@ files_list_series = pd.Series(
 )
 for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
-    assert len(nav_df_path) == 1, "找到多个文件或者没有稳健"
+    assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
     demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
     demo.get_data()
     tables = demo.get_analysis_table()
     nav_df = multi_fund_comparison(tables, row[3])
     data = pd.concat([data, nav_df], axis=0)
 
-data.to_excel("data.xlsx", index=False)
+data.to_excel("data.xlsx", sheet_name="huofuniu", index=False)
 
 
 print("数据已保存到data.xlsx")
