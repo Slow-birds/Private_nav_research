@@ -188,7 +188,7 @@ def get_index_rtn(end_date: str) -> pd.DataFrame:
 def main():
     fund_info = load_data("产品代码.xlsx")
     fund_info["基金代码"] = fund_info["基金代码"].astype(str)
-    data_path = Path("销售产品业绩表现监控表20250324-20250328.xlsx")
+    data_path = Path("销售产品业绩表现监控表20250331-20250403.xlsx")
     # 辅助日期格式
     enddate = datetime.datetime.strptime(data_path.stem.split("-")[-1], "%Y%m%d").strftime("%Y-%m-%d")
     # 获取新一期净值nav_df
