@@ -74,7 +74,7 @@ def update_nav_dfs(nav_df: pd.DataFrame)->pd.DataFrame:
 
 def generate_sigle_nav_df(nav_dfs:pd.DataFrame, fund_info: pd.DataFrame)-> None:
     '''生成单基金净值数据'''
-    nav_dfs["日期"] = pd.to_datetime(nav_dfs["日期"], format="%Y-%m-%d")
+    nav_dfs["日期"] = pd.to_datetime(nav_dfs["日期"], format="%Y%m%d")
     fund_info["成立日期"] = pd.to_datetime(fund_info["成立日期"], format="%Y-%m-%d")
     # 遍历 nav_dfs 中 "基金代码" 列的唯一值
     fundcode_list = fund_info["基金代码"].unique().tolist()
@@ -134,7 +134,7 @@ def multiple_fund_table(fund_info, end_date):
     # 指定策略类型的自定义顺序
     custom_order = [
         "灵活配置","主观成长","主观价值","主观逆向",
-        "300指增","500指增","1000指增","小市值指增","量化选股","市场中性",
+        "300指增","500指增","A500指增","1000指增","小市值指增","中证全指指增","量化选股","市场中性",
         "套利","CTA","多策略","其他",
     ]
     data["策略类型"] = pd.Categorical(data["策略类型"], categories=custom_order, ordered=True)
@@ -151,8 +151,8 @@ def multiple_fund_table(fund_info, end_date):
 
 def get_index_rtn(end_date: str) -> pd.DataFrame:
     '''获取基准指数收益率'''
-    index_code = ["881001.WI", "000300.SH", "000905.SH", "000852.SH", "8841425.WI", "HSTECH.HI", "IXIC.GI"]
-    index_name = ["万得全A", "沪深300", "中证500", "中证1000", "万得小市值指数", "恒生科技", "纳斯达克"]
+    index_code = ["881001.WI", "000300.SH", "000905.SH","000510.SH","000852.SH", "8841425.WI","000985.SH", "HSTECH.HI", "IXIC.GI"]
+    index_name = ["万得全A", "沪深300", "中证500","中证A500", "中证1000", "万得小市值指数","中证全指", "恒生科技", "纳斯达克"]
     end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
     # 自动计算各时间段起始日期
     periods = [
@@ -188,13 +188,15 @@ def get_index_rtn(end_date: str) -> pd.DataFrame:
 def main():
     fund_info = load_data("产品代码.xlsx")
     fund_info["基金代码"] = fund_info["基金代码"].astype(str)
-    data_path = Path("销售产品业绩表现监控表20250331-20250403.xlsx")
+    # data_path = Path("销售产品业绩表现监控表20250331-20250403.xlsx")
     # 辅助日期格式
-    enddate = datetime.datetime.strptime(data_path.stem.split("-")[-1], "%Y%m%d").strftime("%Y-%m-%d")
+    # enddate = datetime.datetime.strptime(data_path.stem.split("-")[-1], "%Y%m%d").strftime("%Y-%m-%d")
     # 获取新一期净值nav_df
-    nav_df = get_new_nav_df(data_path, fund_info)
+    # nav_df = get_new_nav_df(data_path, fund_info)
     # 更新nav_dfs
-    nav_dfs = update_nav_dfs(nav_df)
+    # nav_dfs = update_nav_dfs(nav_df)
+    enddate = "2025-04-11"
+    nav_dfs = pd.read_csv("nav_dfs.csv")
     # 生成单个净值数据
     delete_csv_files("./nav_dfs")
     generate_sigle_nav_df(nav_dfs, fund_info)
