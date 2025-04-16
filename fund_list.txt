@@ -12,5 +12,4 @@ S83994 远澜云杉 c9673a8a61dedcf9
 SEX635 文谛量化优选三号 73d79a1bd21bcc2a
 SZC678 量派CTA七号 330aad5b2fdb3019
 SZB647 安贤CTA量化一号 2dbf6a1532009eef
-ST6571 哲萌1号 62662853380f476c
-
+SQA043 星恒哲萌1号 32fae234e4cbc07e

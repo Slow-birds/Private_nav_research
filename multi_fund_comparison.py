@@ -23,7 +23,7 @@ def multi_fund_comparison(tables, fund_name):
             data4["分年度业绩"] == year, f"{fund_name}_最大回撤"
         ].values
         '''
-    data3 = data3[["2025收益","2024收益","2023收益","2022收益","2021收益","2020收益","2019收益"]]
+    # data3 = data3[["2025收益","2024收益","2023收益","2022收益","2021收益","2020收益","2019收益"]]
     data = pd.concat([data1, data2, data3], axis=1)
     data.drop(columns=["基准指数", "整体业绩"], inplace=True)
     return data
