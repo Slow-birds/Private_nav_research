@@ -72,19 +72,19 @@ def update_nav_dfs(nav_df: pd.DataFrame)->pd.DataFrame:
     update_nav_dfs.to_csv("nav_dfs.csv", index=False, encoding="utf-8-sig")
     return update_nav_dfs
 
-def generate_sigle_nav_df(nav_dfs:pd.DataFrame, fund_info: pd.DataFrame)-> None:
+def generate_sigle_nav_df(nav_dfs:pd.DataFrame, fund_info: pd.DataFrame, end_date:str)-> None:
     '''生成单基金净值数据'''
     nav_dfs["日期"] = pd.to_datetime(nav_dfs["日期"], format="%Y%m%d")
     fund_info["成立日期"] = pd.to_datetime(fund_info["成立日期"], format="%Y-%m-%d")
+    end_date_dt = pd.to_datetime(end_date, format="%Y-%m-%d")
     # 遍历 nav_dfs 中 "基金代码" 列的唯一值
     fundcode_list = fund_info["基金代码"].unique().tolist()
     for fundcode in fundcode_list:
         nav_df = nav_dfs[nav_dfs["基金代码"] == fundcode]
-        start_date = (fund_info[fund_info["基金代码"] == fundcode]["成立日期"].iloc[0].strftime("%Y-%m-%d"))
-        end_date = nav_df["日期"].max().strftime("%Y-%m-%d")
-        fund_name = nav_df["基金名称"].iloc[0]
-        file_path = os.path.join("nav_dfs", f"{fundcode}_{fund_name}_{start_date}_{end_date}.csv")
-        filtered_df = nav_df[nav_df["日期"] >= start_date]
+        start_date_dt = fund_info[fund_info["基金代码"] == fundcode]["成立日期"].iloc[0]
+        filtered_df = nav_df[(nav_df["日期"] >= start_date_dt) & (nav_df["日期"] <= end_date_dt)]
+        fund_name = filtered_df["基金名称"].iloc[0]
+        file_path = os.path.join("nav_dfs", f"{fundcode}_{fund_name}_{start_date_dt.strftime('%Y-%m-%d')}_{end_date}.csv")
         filtered_df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"Created:{file_path}")
 
@@ -199,7 +199,7 @@ def main():
     nav_dfs = pd.read_csv("nav_dfs.csv")
     # 生成单个净值数据
     delete_csv_files("./nav_dfs")
-    generate_sigle_nav_df(nav_dfs, fund_info)
+    generate_sigle_nav_df(nav_dfs, fund_info, enddate)
     # 获取多基金指标对比表
     multiple_fund_table(fund_info, enddate)
     # 获取基准指数收益
