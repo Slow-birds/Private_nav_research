@@ -38,6 +38,7 @@ files_list_series = pd.Series(
     ]
 )
 for row in basic_info.itertuples(index=False, name=None):
+    print(row)
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
     assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
     demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
