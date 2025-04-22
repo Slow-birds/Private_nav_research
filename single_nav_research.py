@@ -5,7 +5,7 @@ strategy = "打板"
 fund_name = "锡和骐骥1号"
 benchmark_code = "885007.WI"
 benchmark_name = "万得混合债券型二级指数"
-threshold = -0.05
+threshold = -0.02
 
 demo = NavResearch(data_path,strategy,fund_name,benchmark_code,benchmark_name,threshold)
 demo.get_data()
