@@ -195,8 +195,9 @@ def main():
     # nav_df = get_new_nav_df(data_path, fund_info)
     # 更新nav_dfs
     # nav_dfs = update_nav_dfs(nav_df)
-    enddate = "2025-04-11"
+    enddate = "2025-04-18"
     nav_dfs = pd.read_csv("nav_dfs.csv")
+    nav_dfs.drop_duplicates(subset=["基金代码","日期"], keep="first", inplace=True)
     # 生成单个净值数据
     delete_csv_files("./nav_dfs")
     generate_sigle_nav_df(nav_dfs, fund_info, enddate)
