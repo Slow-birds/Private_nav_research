@@ -61,6 +61,7 @@ class NavResearch:
         start_day_t, end_day_t = get_date_range(nav_df)
         self.start_day_t = start_day_t
         self.end_day_t = end_day_t
+        assert end_day_t in trade_date or end_day_t in weekly_trade_date,"存在非交易日数据"
         # 获取基准数据
         benchmark_df = get_benchmark_data(self.benchmark_code, start_day_t, end_day_t)
         # df_nav

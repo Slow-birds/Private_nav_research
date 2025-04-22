@@ -1,8 +1,8 @@
 from nav_research import NavResearch
 
-data_path = r"temporary_data\净值序列_通怡股票低波择时1号私募证券投资基金.xlsx"
-strategy = "低波择时"
-fund_name = "通怡股票低波择时1号"
+data_path = r"temporary_data\净值序列_20250422_114514_锡和骐骥1号私募证券投资基金.xlsx"
+strategy = "打板"
+fund_name = "锡和骐骥1号"
 benchmark_code = "885007.WI"
 benchmark_name = "万得混合债券型二级指数"
 threshold = -0.05
