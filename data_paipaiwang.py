@@ -39,7 +39,6 @@ def get_nav_data(fund_id):
     for block in blocks2:
         year_data = [b.strip() for b in block.split("\n\t") if b.strip()]
         dict2[f"{year_data[0]}收益"] = year_data[1]
-
     dict1.update(dict2)
     nav_df = pd.DataFrame(dict1, index=[0])
     return nav_df

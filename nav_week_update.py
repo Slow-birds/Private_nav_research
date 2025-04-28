@@ -121,6 +121,7 @@ def multiple_fund_table(fund_info, end_date):
         # 添加策略类型、近一月收益率、近一周收益列（特定基金产品设置为 NaN）
         nav_df["策略类型"] = row[0]
         nav_df["基金代码"] = row[1]
+        nav_df["总分情况"] = row[7]
         enddate = datetime.datetime.strptime(end_date, "%Y-%m-%d")
         nav_df[f"{enddate.month}月收益"] = tables[4].loc[tables[4]["分月度业绩"] == enddate.year,f"{enddate.month}月"].item()
         nav_df["近一周收益"] = (f"{(df_nav['nav_adjusted'].iloc[-1] / df_nav['nav_adjusted'].iloc[-2] - 1):.2%}")
@@ -129,12 +130,12 @@ def multiple_fund_table(fund_info, end_date):
         results.append(nav_df)
         data = pd.concat(results, ignore_index=True)
         # 自定义排序列顺序
-        cols = ["策略类型", "基金代码"] + [col for col in nav_df.columns if col not in ["策略类型", "基金代码"]]
+        cols = ["总分情况","策略类型", "基金代码"] + [col for col in nav_df.columns if col not in ["总分情况","策略类型", "基金代码"]]
         data = data[cols]
     # 指定策略类型的自定义顺序
     custom_order = [
         "灵活配置","主观成长","主观价值","主观逆向",
-        "300指增","500指增","A500指增","1000指增","小市值指增","中证全指指增","量化选股","市场中性",
+        "300指增","500指增","A500指增","1000指增","2000指增","小市值指增","中证全指指增","量化选股","市场中性",
         "套利","CTA","多策略","其他",
     ]
     data["策略类型"] = pd.Categorical(data["策略类型"], categories=custom_order, ordered=True)
@@ -151,8 +152,8 @@ def multiple_fund_table(fund_info, end_date):
 
 def get_index_rtn(end_date: str) -> pd.DataFrame:
     '''获取基准指数收益率'''
-    index_code = ["881001.WI", "000300.SH", "000905.SH","000510.SH","000852.SH", "8841425.WI","000985.SH", "HSTECH.HI", "IXIC.GI"]
-    index_name = ["万得全A", "沪深300", "中证500","中证A500", "中证1000", "万得小市值指数","中证全指", "恒生科技", "纳斯达克"]
+    index_code = ["881001.WI", "000300.SH", "000905.SH","000510.SH","000852.SH","399303.SZ", "8841425.WI","000985.SH", "HSTECH.HI", "IXIC.GI"]
+    index_name = ["万得全A", "沪深300", "中证500","中证A500", "中证1000","国证2000", "万得小市值指数","中证全指", "恒生科技", "纳斯达克"]
     end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
     # 自动计算各时间段起始日期
     periods = [
@@ -195,7 +196,7 @@ def main():
     # nav_df = get_new_nav_df(data_path, fund_info)
     # 更新nav_dfs
     # nav_dfs = update_nav_dfs(nav_df)
-    enddate = "2025-04-18"
+    enddate = "2025-04-25"
     nav_dfs = pd.read_csv("nav_dfs.csv")
     nav_dfs.drop_duplicates(subset=["基金代码","日期"], keep="first", inplace=True)
     # 生成单个净值数据
