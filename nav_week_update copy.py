@@ -16,6 +16,62 @@ def delete_csv_files(directory: str)-> None:
         csv_file.unlink()
         print(f"Deleted: {csv_file.name}")
 
+def get_nav_dfs(fund_info: pd.DataFrame)-> None:
+    '''初次生成nav_dfs.csv(后续不需执行)'''
+    files_list_series = pd.Series(
+        [
+            i
+            for i in Path("./nav_data").rglob("*")
+            if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
+        ]
+    )
+    nav_dfs = pd.DataFrame()
+    for row in fund_info.itertuples(index=False, name=None):
+        nav_df_path = files_list_series[
+            files_list_series.apply(lambda x: row[1] in x.stem)
+        ]
+        assert (
+            len(nav_df_path) == 1
+        ), f"找到{len(nav_df_path)}个文件匹配{row[2]},期望找到1个"
+        nav_df = load_data(nav_df_path.iloc[0])
+        nav_df["基金代码"] = row[1]
+        nav_df["基金名称"] = row[2]
+        nav_df = nav_df[["基金代码", "基金名称", "日期", "单位净值", "累计净值"]]
+        nav_dfs = pd.concat([nav_dfs, nav_df], ignore_index=True)
+    nav_dfs.to_csv("nav_dfs.csv", index=False, encoding="utf-8-sig")
+
+def get_new_nav_df(data_path:str, fund_info: pd.DataFrame)-> pd.DataFrame:
+    '''获取最新一期净值数据nav_df'''
+    fundcode_list = fund_info["基金代码"].tolist()
+    df1 = pd.read_excel(data_path, sheet_name="私募产品")
+    df2 = pd.read_excel(data_path, sheet_name="资管产品（私募）")
+    # 处理表df1
+    df3 = df1[
+        ["产品代码", "产品名称", "最新日期", "最新单位净值（元）", "累计净值（元）"]
+    ]
+    df3.columns = ["基金代码", "基金名称", "日期", "单位净值", "累计净值"]
+    # 处理表df2
+    df4 = df2[["产品代码", "产品名称", "最新净值日", "单位净值", "累计净值"]]
+    df4.columns = ["基金代码", "基金名称", "日期", "单位净值", "累计净值"]
+    df4["基金代码"] = df4["基金代码"].astype(str)
+    # 合并处理完后的df3、df4
+    df5 = pd.concat([df3, df4], ignore_index=True)
+    df5["日期"] = pd.to_datetime(df5["日期"]).dt.strftime("%Y-%m-%d")
+    nav_df = df5[df5["基金代码"].isin(fundcode_list)].reset_index(drop=True)
+    # 使用map更新"基金名称"列
+    fund_name_map = fund_info.set_index('基金代码')['基金名称'].to_dict()
+    nav_df['基金名称'] = nav_df['基金代码'].map(fund_name_map)
+    return nav_df
+
+def update_nav_dfs(nav_df: pd.DataFrame)->pd.DataFrame:
+    ''' 将最新一期净值数据nav_df更新到nav_dfs'''
+    nav_dfs = pd.read_csv("nav_dfs.csv")
+    update_nav_dfs = pd.concat([nav_dfs, nav_df], axis=0, ignore_index=True)
+    update_nav_dfs.drop_duplicates(subset=["基金代码", "日期"], inplace=True)
+    update_nav_dfs.sort_values(by=["基金代码", "日期"], inplace=True)
+    update_nav_dfs.to_csv("nav_dfs.csv", index=False, encoding="utf-8-sig")
+    return update_nav_dfs
+
 def generate_sigle_nav_df(nav_dfs:pd.DataFrame, fund_info: pd.DataFrame, end_date:str)-> None:
     '''生成单基金净值数据'''
     nav_dfs["日期"] = pd.to_datetime(nav_dfs["日期"], format="%Y%m%d")
@@ -103,7 +159,7 @@ def get_index_rtn(end_date: str) -> pd.DataFrame:
     periods = [
         {
             'type': 'year',
-            'start_date': "2024-12-30",
+            'start_date': f"{end_dt.year}-01-01",
             'col_name': f"{end_dt.year}收益"
         },
         {
@@ -133,6 +189,13 @@ def get_index_rtn(end_date: str) -> pd.DataFrame:
 def main():
     fund_info = load_data("产品代码.xlsx")
     fund_info["基金代码"] = fund_info["基金代码"].astype(str)
+    # data_path = Path("销售产品业绩表现监控表20250331-20250403.xlsx")
+    # 辅助日期格式
+    # enddate = datetime.datetime.strptime(data_path.stem.split("-")[-1], "%Y%m%d").strftime("%Y-%m-%d")
+    # 获取新一期净值nav_df
+    # nav_df = get_new_nav_df(data_path, fund_info)
+    # 更新nav_dfs
+    # nav_dfs = update_nav_dfs(nav_df)
     enddate = "2025-04-18"
     nav_dfs = pd.read_csv("nav_dfs.csv")
     nav_dfs.drop_duplicates(subset=["基金代码","日期"], keep="first", inplace=True)
