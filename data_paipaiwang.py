@@ -3,7 +3,6 @@ import time
 import random
 from DrissionPage import ChromiumPage
 
-
 def get_nav_data(fund_id):
     page = ChromiumPage()
     page.get(f"https://dc.simuwang.com/product/{fund_id}.html")
