@@ -13,7 +13,7 @@ def get_nav_data(fund_id):
     page.ele('xpath:/html/body/aside[4]/div/div/div[2]/div[2]/div[2]/div[1]/div/aside[1]/div/div[4]/label/span/span').click()
     page.ele('xpath:/html/body/aside[4]/div/div/div[2]/div[2]/div[2]/div[1]/div/aside[1]/div/div[5]/button/span').click()
     """
-    time.sleep(random.uniform(0.5, 1.5))
+    time.sleep(3)
     page.ele('xpath://*[@id="nav-el-m2QCkZj"]/div[3]').click()
     time.sleep(random.uniform(0.5, 1.5))
     page.ele('xpath://*[@id="screenshot-range-gain"]/div/div[1]/aside/div[3]').click()
