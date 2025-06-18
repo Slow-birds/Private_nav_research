@@ -133,7 +133,7 @@ def get_index_rtn(end_date: str) -> pd.DataFrame:
 def main():
     fund_info = load_data("产品代码.xlsx")
     fund_info["基金代码"] = fund_info["基金代码"].astype(str)
-    enddate = "2025-06-06"
+    enddate = "2025-06-13"
     nav_dfs = pd.read_csv("nav_dfs.csv")
     nav_dfs.drop_duplicates(subset=["基金代码","日期"], keep="first", inplace=True)
     # 生成单个净值数据
