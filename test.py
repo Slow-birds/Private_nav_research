@@ -29,6 +29,7 @@ def get_data(custom_id,end_time):
     json_data = response.json()["Data"]
     return json_data
 
+
 # 营业收入
 def operating_data_format(json_data):
     all_list = []
@@ -197,6 +198,20 @@ def other_income(dict,end_time):
                 data.to_excel(writer, sheet_name=key, index=False)
             print(f"sheet-{key}-写入成功")
 
+
+columns=["排名","分公司","分支编码","营业部","营业收入","交易类收入","借贷类收入","委托类收入","其他类收入"]
+
+def operating_income(dict,end_time):
+    dict = {key: dict[key] for key in list(dict.keys())[0:4]}
+    for key,value in dict.items():
+            json_data = get_data(value,end_time)
+            all_list = operating_data_format(json_data)
+            data = pd.DataFrame(all_list, columns=["排名","分公司","分支编码","营业部","营业收入","交易类收入","借贷类收入","委托类收入","其他类收入"])
+            if key == "营业收入_分公司月度" or key == "营业收入_分公司累计":
+                data.drop(columns=["分支编码","营业部"], inplace=True)
+            with pd.ExcelWriter("data_income.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
+                data.to_excel(writer, sheet_name=key, index=False)
+            print(f"sheet-{key}-写入成功")
 
 if __name__ == '__main__':
     end_time = "202505"
