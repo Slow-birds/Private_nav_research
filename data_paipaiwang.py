@@ -47,11 +47,7 @@ if __name__ == "__main__":
     dict = {
         "黑翼CTA8号": "HF000051UR",
         "宏锡量化CTA7号": "HF00002G7U",
-        "千象15期": "HF00003HBI",
         "细水居20号": "HF00009G5B",
-        "闻道稳健一号": "HF00005KKE",
-        "金和和善对冲1号": "HF00007V41",
-        "博普安兴私享一号B类份额": "HF0000BCQX",
     }
     nav_dfs = pd.DataFrame()
     for fund_name, fund_code in dict.items():
