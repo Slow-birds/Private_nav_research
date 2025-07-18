@@ -11,7 +11,7 @@ from typing import Literal
 from WindPy import w
 w.start()
 
-# 加载数据
+# 读取数据
 def load_data(df_path: str) -> pd.DataFrame:
     df_path = Path(df_path)
     file_suffix = df_path.suffix
@@ -25,45 +25,8 @@ def load_data(df_path: str) -> pd.DataFrame:
         raise ValueError(f"不支持的文件格式：{file_suffix}")
     return df
 
-# 净值数据标准化
-def get_standardized_data(nav_df: pd.DataFrame) -> pd.DataFrame:
-    # 规范净值数据列名
-    if "净值日期" in nav_df.columns:
-        nav_df = nav_df.rename(columns={"净值日期": "日期"})
-    assert "日期" in nav_df.columns, "Error: 未找到日期列"
-    if "累计单位净值" in nav_df.columns:
-        nav_df = nav_df.rename(columns={"累计单位净值": "累计净值"})
-    assert "累计净值" in nav_df.columns, "Error: 未找到累计净值列"
-    # 检查是否有日期/累计净值为空的数据
-    assert nav_df["日期"].isnull().sum() == 0, "Error: 净值数据中存在日期为空的数据"
-    assert (
-        nav_df["累计净值"].isnull().sum() == 0
-    ), "Error: 净值数据中存在累计净值为空的数据"
-    # 检查是否有日期重复的数据
-    assert (
-        nav_df["日期"].duplicated(keep=False).sum() == 0
-    ), "Error: 净值数据中存在日期重复的数据"
-    # 标准化日期格式
-    if nav_df["日期"].dtype == "int":
-        nav_df["日期"] = pd.to_datetime(nav_df["日期"], format="%Y%m%d")
-    else:
-        nav_df["日期"] = pd.to_datetime(nav_df["日期"])
-    # 排序
-    nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
-    nav_df.rename(
-        columns={"日期": "date", "单位净值": "nav_unit", "累计净值": "nav_accumulated"},
-        inplace=True,
-    )
-    # 归一化
-    nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"].iloc[0]
-    nav_df["nav_accumulated"] = nav_df["nav_accumulated"] / nav_df["nav_accumulated"].iloc[0]
-    # 保留小数点后4位
-    nav_df = nav_df.round(4)
-    return nav_df
-
 # 求复权净值
-def get_nav_adjusted(nav_df: pd.DataFrame) -> pd.DataFrame:
-    nav_df = nav_df.copy()
+def nav_adjusted(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df["nav_adjusted"] = np.nan
     nav_df.loc[0, "nav_adjusted"] = 1
     for i in range(1, len(nav_df)):
@@ -75,11 +38,45 @@ def get_nav_adjusted(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df = nav_df[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]]
     return nav_df
 
-# 求日期范围
-def get_date_range(nav_df:pd.DataFrame) -> Tuple[str, str]:
-    start_day = nav_df["date"].min().strftime("%Y-%m-%d")
-    end_day = nav_df["date"].max().strftime("%Y-%m-%d")
-    return start_day, end_day
+# 净值数据标准化
+def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
+    # 规范净值数据列名（日期、单位净值、累计净值）
+    column_mapping = {
+    "日期": ["净值日期", "date"],
+    "单位净值": ["nav_unit"],
+    "累计净值": ["累计单位净值", "nav_accumulated"]
+    }
+    for standard_name, alt_names in column_mapping.items():
+        if standard_name in nav_df.columns:
+            continue
+        for alt_name in alt_names:
+            if alt_name in nav_df.columns:
+                nav_df = nav_df.rename(columns={alt_name: standard_name})
+                break
+    assert "日期" in nav_df.columns, "Error: 未找到日期列"
+    assert "单位净值" in nav_df.columns, "Error: 未找到单位净值列"
+    assert "累计净值" in nav_df.columns, "Error: 未找到累计净值列"
+    # 检查是否有日期/单位净值/累计净值为空和日期重复的数据
+    assert nav_df["日期"].isnull().sum() == 0, "Error: 净值数据中存在日期为空的数据"
+    assert (nav_df["单位净值"].isnull().sum() == 0), "Error: 净值数据中存在单位净值为空的数据"
+    assert (nav_df["累计净值"].isnull().sum() == 0), "Error: 净值数据中存在累计净值为空的数据"
+    assert (nav_df["日期"].duplicated(keep=False).sum() == 0), "Error: 净值数据中存在日期重复的数据"
+    # 标准化日期格式
+    if nav_df["日期"].dtype == "int":
+        nav_df["日期"] = pd.to_datetime(nav_df["日期"], format="%Y%m%d")
+    else:
+        nav_df["日期"] = pd.to_datetime(nav_df["日期"])
+    # 排序
+    nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
+    nav_df.rename(columns={'日期': 'date', '单位净值': 'nav_unit', '累计净值': 'nav_accumulated'}, inplace=True)
+    # 归一化
+    nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"].iloc[0]
+    nav_df["nav_accumulated"] = nav_df["nav_accumulated"] / nav_df["nav_accumulated"].iloc[0]
+    # 复权净值
+    nav_df = nav_adjusted(nav_df)
+    # 保留小数点后4位
+    nav_df = nav_df.round(4)
+    return nav_df
 
 # 日期频率推断
 def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
@@ -97,9 +94,7 @@ def generate_trading_date(
     begin_date: np.datetime64 = np.datetime64("2015-01-01"),
     end_date: np.datetime64 = np.datetime64("today"),
 ) -> Tuple[np.ndarray[np.datetime64]]:
-    assert begin_date >= np.datetime64(
-        "2015-01-04"
-    ), "系统预设起始日期仅支持2015年1月4日以后"
+    assert begin_date >= np.datetime64("2015-01-04"), "系统预设起始日期仅支持2015年1月4日以后"
     with open(
         Path(__file__).resolve().parent.joinpath("Chinese_special_holiday.txt"), "r"
     ) as f:
@@ -125,26 +120,6 @@ def generate_trading_date(
             trading_date_df[trading_date_df["is_friday"]]["trading_date"].values[1:]
         ).astype("datetime64[D]"),
     )
-'''
-def match_data(
-    nav_data: pd.DataFrame,
-    trade_date: np.ndarray[np.datetime64],
-) -> pd.DataFrame:
-    """
-    如果trade_date 的日期不在nav_data中, 则用前一个交易日的数据填充
-    特殊的, 如果trade_date的开始日期早于nav_data的开始日期, 则需要对trade_date进行截取
-    """
-    first_row = nav_data.iloc[[0]].copy()
-    trade_date = trade_date[trade_date >= nav_data["date"].min()]
-    nav_data = nav_data.set_index("date")
-    nav_data = nav_data.reindex(trade_date, method="bfill")
-    nav_data = nav_data.reset_index(drop=False)
-    combined = pd.concat([nav_data, first_row], ignore_index=True)
-    combined = combined.sort_values(by="date")
-    combined_unique = combined.drop_duplicates()
-    combined_unique = combined_unique.reset_index(drop=True)
-    return combined_unique
-'''
 
 def match_data(
     nav_data: pd.DataFrame,
@@ -186,8 +161,8 @@ def match_data(
     result.reset_index(drop=True)
     return result
 
-# benchmark data
-def get_benchmark_data(code, start_day, end_day):
+# 基准数据
+def benchmark_data(code, start_day, end_day):
     error_code, benchmark_df = w.wsd(
         code,
         "close",
@@ -197,11 +172,10 @@ def get_benchmark_data(code, start_day, end_day):
         usedf=True,
     )
     benchmark_df.reset_index(inplace=True)
-    benchmark_df.columns = ["date", code]
-    benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
+    benchmark_df.columns = ["日期", code]
+    benchmark_df["日期"] = pd.to_datetime(benchmark_df["日期"])
     benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
     return benchmark_df
-
 
 def calc_nav_rtn(nav: np.ndarray, types: Literal["log", "simple"] = "log"):
     if types == "simple":

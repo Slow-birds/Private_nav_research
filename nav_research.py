@@ -40,15 +40,13 @@ class NavResearch:
 
     # df_nav, df_return, df_drawdown
     def get_data(self):
-        # 净值数据读取、标准化、求复权净值
+        # 净值数据读取、标准化、日期规范
         nav_df = load_data(self.nav_data_path)
-        nav_df = get_standardized_data(nav_df)
-        nav_df = get_nav_adjusted(nav_df)
-        # 日期规范前的start_day, end_day
-        start_day, end_day = get_date_range(nav_df)
-        # 日期规范
+        nav_df = nav_normalization(nav_df)
         freq = infer_frequency(self.fund_name, nav_df)
         self.freq = freq
+        start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+        end_day = nav_df["date"].max().strftime("%Y-%m-%d")
         trade_date, weekly_trade_date = generate_trading_date(
             begin_date=np.datetime64(start_day) - np.timedelta64(10, "D"),
             end_date=np.datetime64(end_day)+ np.timedelta64(5, "D"),
@@ -57,14 +55,13 @@ class NavResearch:
             nav_df = match_data(nav_df, trade_date)
         else:  # freq is "W"
             nav_df = match_data(nav_df, weekly_trade_date)
-        # 日期规范后的start_date, end_date
-        start_day_t, end_day_t = get_date_range(nav_df)
+        # 获取基准数据
+        start_day_t, = nav_df["date"].min().strftime("%Y-%m-%d")
+        end_day_t, = nav_df["date"].max().strftime("%Y-%m-%d")
         self.start_day_t = start_day_t
         self.end_day_t = end_day_t
-        # assert end_day_t in trade_date or end_day_t in weekly_trade_date,"存在非交易日数据"
-        # 获取基准数据
-        benchmark_df = get_benchmark_data(self.benchmark_code, start_day_t, end_day_t)
-        # df_nav
+        benchmark_df = benchmark_data(self.benchmark_code, start_day_t, end_day_t)
+        # 合并数据
         df = pd.merge(nav_df, benchmark_df, on="date", how="left")
         # 剔除空值行
         df = df.dropna()
