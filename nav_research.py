@@ -45,8 +45,7 @@ class NavResearch:
         nav_df = nav_normalization(nav_df)
         freq = infer_frequency(self.fund_name, nav_df)
         self.freq = freq
-        start_day = nav_df["date"].min().strftime("%Y-%m-%d")
-        end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+        start_day,end_day = date_range(nav_df)
         trade_date, weekly_trade_date = generate_trading_date(
             begin_date=np.datetime64(start_day) - np.timedelta64(10, "D"),
             end_date=np.datetime64(end_day)+ np.timedelta64(5, "D"),
@@ -56,8 +55,7 @@ class NavResearch:
         else:  # freq is "W"
             nav_df = match_data(nav_df, weekly_trade_date)
         # 获取基准数据
-        start_day_t, = nav_df["date"].min().strftime("%Y-%m-%d")
-        end_day_t, = nav_df["date"].max().strftime("%Y-%m-%d")
+        start_day_t,end_day_t = date_range(nav_df)
         self.start_day_t = start_day_t
         self.end_day_t = end_day_t
         benchmark_df = benchmark_data(self.benchmark_code, start_day_t, end_day_t)

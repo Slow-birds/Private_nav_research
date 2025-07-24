@@ -78,6 +78,11 @@ def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df = nav_df.round(4)
     return nav_df
 
+def date_range(nav_df):
+    start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+    end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+    return start_day,end_day
+
 # 日期频率推断
 def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
     date = nav_df["date"].values
@@ -172,8 +177,8 @@ def benchmark_data(code, start_day, end_day):
         usedf=True,
     )
     benchmark_df.reset_index(inplace=True)
-    benchmark_df.columns = ["日期", code]
-    benchmark_df["日期"] = pd.to_datetime(benchmark_df["日期"])
+    benchmark_df.columns = ["date", code]
+    benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
     benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
     return benchmark_df
 
