@@ -60,10 +60,16 @@ class NavResearch:
         self.end_day_t = end_day_t
         benchmark_df = benchmark_data(self.benchmark_code, start_day_t, end_day_t)
         # 合并数据
-        df = pd.merge(nav_df, benchmark_df, on="date", how="left")
+        df_merge = pd.merge(nav_df, benchmark_df, on="date", how="left")
         # 剔除空值行
-        df = df.dropna()
-        df = df.reset_index(drop=True)
+        df_merge = df_merge.dropna()
+        df_merge = df_merge.reset_index(drop=True)
+        self.df_merge = df_merge
+        return self.df_merge
+        
+    def get_data1(self):
+        df = self.df_merge
+        # df_nav
         df["excess_nav"] = df["nav_adjusted"] - df[self.benchmark_code] + 1
         df_nav = df[
             [
@@ -88,17 +94,17 @@ class NavResearch:
         ].round(4)
         # df_drawdown
         df_nav_copy = df_nav.copy()
-        # fund_drawdown
+        ## fund_drawdown
         df_nav_copy["fun_max_so_far"] = df_nav_copy["nav_adjusted"].cummax()
         df_nav_copy["fund_drawdown"] = (
             df_nav_copy["nav_adjusted"] - df_nav_copy["fun_max_so_far"]
         ) / df_nav_copy["fun_max_so_far"]
-        # benchmark_drawdown
+        ## benchmark_drawdown
         df_nav_copy["benchmark_max_so_far"] = df_nav_copy[self.benchmark_code].cummax()
         df_nav_copy["benchmark_drawdown"] = (
             df_nav_copy[self.benchmark_code] - df_nav_copy["benchmark_max_so_far"]
         ) / df_nav_copy["benchmark_max_so_far"]
-        # excess_drawdown
+        ## excess_drawdown
         df_nav_copy["excess_max_so_far"] = df_nav_copy["excess_nav"].cummax()
         df_nav_copy["excess_drawdown"] = (
             df_nav_copy["excess_nav"] - df_nav_copy["excess_max_so_far"]
@@ -134,7 +140,7 @@ class NavResearch:
                 ],
                 "复权净值": [
                     self.df_nav.loc[
-                        self.df_nav["date"] == "2025-06-20", "nav_adjusted"
+                        self.df_nav["date"] == self.end_day_t, "nav_adjusted"
                     ]
                     .values[0]
                     .round(4)

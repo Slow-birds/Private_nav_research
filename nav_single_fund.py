@@ -8,7 +8,8 @@ benchmark_name = "万得混合债券型二级指数"
 threshold = -0.05
 
 demo = NavResearch(data_path,strategy,fund_name,benchmark_code,benchmark_name,threshold)
-nav_df,_,_= demo.get_data()
+demo.get_data()
+nav_df,_,_= demo.get_data1()
 nav_df.to_csv(f"{fund_name}-净值序列.csv",encoding="utf-8-sig",index=False)
 demo.get_analysis_table()
 demo.get_html()
