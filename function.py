@@ -78,11 +78,6 @@ def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df = nav_df.round(4)
     return nav_df
 
-def date_range(nav_df):
-    start_day = nav_df["date"].min().strftime("%Y-%m-%d")
-    end_day = nav_df["date"].max().strftime("%Y-%m-%d")
-    return start_day,end_day
-
 # 日期频率推断
 def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
     date = nav_df["date"].values
@@ -126,6 +121,7 @@ def generate_trading_date(
         ).astype("datetime64[D]"),
     )
 
+# 数据匹配
 def match_data(
     nav_data: pd.DataFrame,
     trade_date: np.ndarray[np.datetime64],
@@ -165,6 +161,20 @@ def match_data(
     result.rename(columns={"nav_date": "date"}, inplace=True)
     result.reset_index(drop=True)
     return result
+
+# 日期标准化
+def date_normalization(nav_df, freq):
+    start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+    end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+    trade_date, weekly_trade_date = generate_trading_date(
+    begin_date=pd.to_datetime(start_day) - pd.Timedelta(days=10),
+    end_date=pd.to_datetime(end_day) + pd.Timedelta(days=5),
+    )
+    if freq == "D":
+        nav_df = match_data(nav_df, trade_date)
+    else:  # freq is "W"
+        nav_df = match_data(nav_df, weekly_trade_date)
+    return nav_df
 
 # 基准数据
 def benchmark_data(code, start_day, end_day):

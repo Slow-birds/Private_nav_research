@@ -44,31 +44,24 @@ class NavResearch:
         nav_df = load_data(self.nav_data_path)
         nav_df = nav_normalization(nav_df)
         freq = infer_frequency(self.fund_name, nav_df)
-        self.freq = freq
-        start_day,end_day = date_range(nav_df)
-        trade_date, weekly_trade_date = generate_trading_date(
-            begin_date=np.datetime64(start_day) - np.timedelta64(10, "D"),
-            end_date=np.datetime64(end_day)+ np.timedelta64(5, "D"),
-        )
-        if self.freq == "D":
-            nav_df = match_data(nav_df, trade_date)
-        else:  # freq is "W"
-            nav_df = match_data(nav_df, weekly_trade_date)
+        nav_df = date_normalization(nav_df, freq)
         # 获取基准数据
-        start_day_t,end_day_t = date_range(nav_df)
-        self.start_day_t = start_day_t
-        self.end_day_t = end_day_t
-        benchmark_df = benchmark_data(self.benchmark_code, start_day_t, end_day_t)
+        start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+        end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+        benchmark_df = benchmark_data(self.benchmark_code, start_day, end_day)
         # 合并数据
-        df_merge = pd.merge(nav_df, benchmark_df, on="date", how="left")
-        # 剔除空值行
-        df_merge = df_merge.dropna()
-        df_merge = df_merge.reset_index(drop=True)
-        self.df_merge = df_merge
-        return self.df_merge
-        
+        nav_merge = pd.merge(nav_df, benchmark_df, on="date", how="left")
+        # 剔除空值行、重置索引
+        nav_merge = nav_merge.dropna()
+        nav_merge = nav_merge.reset_index(drop=True)
+        self.freq = freq
+        self.start_day = start_day
+        self.end_day = end_day
+        self.nav_merge = nav_merge
+        return self.nav_merge
+
     def get_data1(self):
-        df = self.df_merge
+        df = self.nav_merge
         # df_nav
         df["excess_nav"] = df["nav_adjusted"] - df[self.benchmark_code] + 1
         df_nav = df[
@@ -124,23 +117,23 @@ class NavResearch:
             {
                 "基金产品": [self.fund_name],
                 "基准指数": [self.benchmark_name],
-                "净值起始日期": [self.start_day_t],
-                "净值结束日期": [self.end_day_t],
+                "净值起始日期": [self.start_day],
+                "净值结束日期": [self.end_day],
                 "单位净值": [
-                    self.df_nav.loc[self.df_nav["date"] == self.end_day_t, "nav_unit"]
+                    self.df_nav.loc[self.df_nav["date"] == self.end_day, "nav_unit"]
                     .values[0]
                     .round(4)
                 ],
                 "累计净值": [
                     self.df_nav.loc[
-                        self.df_nav["date"] == self.end_day_t, "nav_accumulated"
+                        self.df_nav["date"] == self.end_day, "nav_accumulated"
                     ]
                     .values[0]
                     .round(4)
                 ],
                 "复权净值": [
                     self.df_nav.loc[
-                        self.df_nav["date"] == self.end_day_t, "nav_adjusted"
+                        self.df_nav["date"] == self.end_day, "nav_adjusted"
                     ]
                     .values[0]
                     .round(4)
@@ -149,7 +142,7 @@ class NavResearch:
         )
         # nav ratio table
         days_diff = (
-            (np.datetime64(self.end_day_t) - np.datetime64(self.start_day_t))
+            (np.datetime64(self.end_day) - np.datetime64(self.start_day))
             .astype("timedelta64[D]")
             .astype(int)
         )
@@ -402,11 +395,11 @@ class NavResearch:
             </html>
         """
         html_name = (
-            np.datetime_as_string(np.datetime64(self.start_day_t), unit="D").replace(
+            np.datetime_as_string(np.datetime64(self.start_day), unit="D").replace(
                 "-", ""
             )
             + "_"
-            + np.datetime_as_string(np.datetime64(self.end_day_t), unit="D").replace(
+            + np.datetime_as_string(np.datetime64(self.end_day), unit="D").replace(
                 "-", ""
             )
             + "_"

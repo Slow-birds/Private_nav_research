@@ -1,6 +1,6 @@
 from nav_research import NavResearch
 
-data_path = r"E:\桌面文件\Vscode\Private_nav_research\data\SAPG52_简雍斯量先锋_2025-07-18.csv"
+data_path = r"C:\Users\yueku\Desktop\VScode\Private_nav_research\data\SAPG52_简雍斯量先锋_2025-07-18.csv"
 strategy = "量化CTA"
 fund_name = "简雍斯量先锋"
 benchmark_code = "885007.WI"
