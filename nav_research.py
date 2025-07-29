@@ -134,7 +134,7 @@ class NavResearch:
                 ],
                 "复权净值": [
                     self.df_nav.loc[
-                        self.df_nav["date"] == self.end_day_t, "nav_adjusted"
+                        self.df_nav["date"] == "2025-06-20", "nav_adjusted"
                     ]
                     .values[0]
                     .round(4)
