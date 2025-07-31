@@ -38,45 +38,57 @@ def nav_adjusted(nav_df: pd.DataFrame) -> pd.DataFrame:
     nav_df = nav_df[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]]
     return nav_df
 
-# 净值数据标准化
-def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
-    # 规范净值数据列名（日期、单位净值、累计净值）
+def column_normalization(nav_df: pd.DataFrame):
+    # 规范净值数据列名（日期、单位净值、累计净值、复权净值）
     column_mapping = {
-    "日期": ["净值日期", "date"],
-    "单位净值": ["nav_unit"],
-    "累计净值": ["累计单位净值", "nav_accumulated"]
+    "date": ["日期", "净值日期"],
+    "nav_unit": ["单位净值"],
+    "nav_accumulated": ["累计净值", "累计单位净值"],
+    "nav_adjusted": ["复权净值", "复权单位净值"],
     }
     for standard_name, alt_names in column_mapping.items():
-        if standard_name in nav_df.columns:
-            continue
         for alt_name in alt_names:
             if alt_name in nav_df.columns:
                 nav_df = nav_df.rename(columns={alt_name: standard_name})
                 break
-    assert "日期" in nav_df.columns, "Error: 未找到日期列"
-    assert "单位净值" in nav_df.columns, "Error: 未找到单位净值列"
-    assert "累计净值" in nav_df.columns, "Error: 未找到累计净值列"
-    # 检查是否有日期/单位净值/累计净值为空和日期重复的数据
-    assert nav_df["日期"].isnull().sum() == 0, "Error: 净值数据中存在日期为空的数据"
-    assert (nav_df["单位净值"].isnull().sum() == 0), "Error: 净值数据中存在单位净值为空的数据"
-    assert (nav_df["累计净值"].isnull().sum() == 0), "Error: 净值数据中存在累计净值为空的数据"
-    assert (nav_df["日期"].duplicated(keep=False).sum() == 0), "Error: 净值数据中存在日期重复的数据"
-    # 标准化日期格式
-    if nav_df["日期"].dtype == "int":
-        nav_df["日期"] = pd.to_datetime(nav_df["日期"], format="%Y%m%d")
-    else:
-        nav_df["日期"] = pd.to_datetime(nav_df["日期"])
-    # 排序
-    nav_df = nav_df.sort_values(by="日期", ascending=True).reset_index(drop=True)
-    nav_df.rename(columns={'日期': 'date', '单位净值': 'nav_unit', '累计净值': 'nav_accumulated'}, inplace=True)
-    # 归一化
-    nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"].iloc[0]
-    nav_df["nav_accumulated"] = nav_df["nav_accumulated"] / nav_df["nav_accumulated"].iloc[0]
-    # 复权净值
-    nav_df = nav_adjusted(nav_df)
-    # 保留小数点后4位
-    nav_df = nav_df.round(4)
     return nav_df
+# 净值数据标准化
+def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
+    # 规范净值数据列名（日期、单位净值、累计净值、复权净值）
+    column_mapping = {
+    "date": ["日期", "净值日期"],
+    "nav_unit": ["单位净值"],
+    "nav_accumulated": ["累计净值", "累计单位净值"],
+    "nav_adjusted": ["复权净值", "复权单位净值"],
+    }
+    for standard_name, alt_names in column_mapping.items():
+        for alt_name in alt_names:
+            if alt_name in nav_df.columns:
+                nav_df = nav_df.rename(columns={alt_name: standard_name})
+                break
+    # 检查是否有日期列、以及日期列是否有存在为空或者重复的数据
+    assert "date" in nav_df.columns, "Error: 未找到日期列"
+    assert nav_df["date"].isnull().sum() == 0, "Error: 净值数据中存在日期为空的数据"
+    assert (nav_df["date"].duplicated(keep=False).sum() == 0), "Error: 净值数据中存在日期重复的数据"
+    # 标准化日期格式、排序
+    if nav_df["date"].dtype == "int":
+        nav_df["date"] = pd.to_datetime(nav_df["date"], format="%Y%m%d")
+    else:
+        nav_df["date"] = pd.to_datetime(nav_df["date"])
+    nav_df = nav_df.sort_values(by="date", ascending=True).reset_index(drop=True)
+    # 判断是否有复权净值列
+    if "nav_adjusted" not in nav_df.columns:
+        # 检查是否有日期/单位净值/累计净值为空和日期重复的数据
+        assert "nav_unit" in nav_df.columns, "Error: 未找到单位净值列"
+        assert "nav_accumulated" in nav_df.columns, "Error: 未找到累计净值列"
+        assert (nav_df["nav_unit"].isnull().sum() == 0), "Error: 净值数据中存在单位净值为空的数据"
+        assert (nav_df["nav_accumulated"].isnull().sum() == 0), "Error: 净值数据中存在累计净值为空的数据"
+        # 归一化
+        nav_df["nav_unit"] = nav_df["nav_unit"] / nav_df["nav_unit"].iloc[0]
+        nav_df["nav_accumulated"] = nav_df["nav_accumulated"] / nav_df["nav_accumulated"].iloc[0]
+        # 复权净值
+        nav_df = nav_adjusted(nav_df)
+    return nav_df[["date", "nav_adjusted"]].round(4)
 
 # 日期频率推断
 def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
@@ -157,7 +169,7 @@ def match_data(
     )
     # 恢复原始顺序并清理辅助列
     result = merged.sort_values("original_order").drop(columns=["original_order","trade_date"])
-    result= result[["nav_date","nav_unit","nav_accumulated","nav_adjusted"]]
+    result= result[["nav_date", "nav_adjusted"]]
     result.rename(columns={"nav_date": "date"}, inplace=True)
     result.reset_index(drop=True)
     return result
@@ -249,7 +261,7 @@ def get_nav_lines(df, fund_name, benchmark_name):
 
     x_data = df["date"].dt.strftime("%Y-%m-%d").tolist()
     ys_data = (
-        (df.drop(columns=["date", "nav_unit", "nav_accumulated"], axis=1) - 1) * 100
+        (df.drop(columns=["date"], axis=1) - 1) * 100
     ).round(2)
     min_data = round((ys_data.values.min() - 0.1 * abs(ys_data.values.min())))
     max_data = round((ys_data.values.max() + 0.1 * abs(ys_data.values.max())))

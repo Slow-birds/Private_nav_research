@@ -41,7 +41,8 @@ for row in basic_info.itertuples(index=False, name=None):
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
     assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
     demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
-    nav_df, _, _ = demo.get_data()
+    demo.get_data()
+    nav_df, _, _ = demo.get_data1()
     nav_df.to_csv(f"temporary_data/{row[3]}.csv", index=False)
     tables = demo.get_analysis_table()
     nav_df = multi_fund_comparison(tables, row[3])

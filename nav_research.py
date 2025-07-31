@@ -41,8 +41,9 @@ class NavResearch:
     # df_nav, df_return, df_drawdown
     def get_data(self):
         # 净值数据读取、标准化、日期规范
-        nav_df = load_data(self.nav_data_path)
-        nav_df = nav_normalization(nav_df)
+        original_df = load_data(self.nav_data_path)
+        original_df = column_normalization(original_df)
+        nav_df = nav_normalization(original_df)
         freq = infer_frequency(self.fund_name, nav_df)
         nav_df = date_normalization(nav_df, freq)
         # 获取基准数据
@@ -54,6 +55,7 @@ class NavResearch:
         # 剔除空值行、重置索引
         nav_merge = nav_merge.dropna()
         nav_merge = nav_merge.reset_index(drop=True)
+        self.original_df = original_df
         self.freq = freq
         self.start_day = start_day
         self.end_day = end_day
@@ -67,8 +69,6 @@ class NavResearch:
         df_nav = df[
             [
                 "date",
-                "nav_unit",
-                "nav_accumulated",
                 "nav_adjusted",
                 self.benchmark_code,
                 "excess_nav",
@@ -119,18 +119,18 @@ class NavResearch:
                 "基准指数": [self.benchmark_name],
                 "净值起始日期": [self.start_day],
                 "净值结束日期": [self.end_day],
-                "单位净值": [
-                    self.df_nav.loc[self.df_nav["date"] == self.end_day, "nav_unit"]
-                    .values[0]
-                    .round(4)
-                ],
-                "累计净值": [
-                    self.df_nav.loc[
-                        self.df_nav["date"] == self.end_day, "nav_accumulated"
-                    ]
-                    .values[0]
-                    .round(4)
-                ],
+                # "单位净值": [
+                #     self.original_df.loc[self.original_df["date"] == self.end_day, "nav_unit"]
+                #     .values[0]
+                #     .round(4)
+                # ],
+                # "累计净值": [
+                #     self.original_df.loc[
+                #         self.original_df["date"] == self.end_day, "nav_accumulated"
+                #     ]
+                #     .values[0]
+                #     .round(4)
+                # ],
                 "复权净值": [
                     self.df_nav.loc[
                         self.df_nav["date"] == self.end_day, "nav_adjusted"
