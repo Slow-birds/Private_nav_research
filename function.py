@@ -505,14 +505,12 @@ def get_drawdown_lines(df, fund_name, benchmark_name):
     # line.render_notebook()
     return line
 
-
 def format_index(df: pd.DataFrame):
     x = df.index.values
     if x.dtype == "datetime64[ns]":
         x = np.datetime_as_string(x, unit="D")
     df.index = x
     return df
-
 
 def get_line(df, title):
     df = format_index(df)
@@ -542,66 +540,6 @@ def get_line(df, title):
     line.set_series_opts(linestyle_opts=opts.LineStyleOpts(width=2))
     return line
 
-
-# 暂时弃用
-
-
-
-def calculate_annual_metrics(df, fund_name, benchmark_code, benchmark_name):
-    nav_year_end = df.sort_values("date").groupby(df["date"].dt.to_period("Y")).tail(1)
-    year_return = pd.DataFrame(
-        columns=[
-            "分年度业绩",
-            f"{fund_name}_收益",
-            f"{fund_name}_最大回撤",
-            f"{benchmark_name}_收益",
-            f"{benchmark_name}_最大回撤",
-            "超额收益",
-        ]
-    )
-    years = df["date"].dt.year.unique()
-    for year in years:
-        year_df = df[df["date"].dt.year == year]
-        fund_start_value = (
-            nav_year_end[nav_year_end["date"].dt.year == (year - 1)][
-                "nav_adjusted"
-            ].iloc[0]
-            if year > years.min()
-            else year_df["nav_adjusted"].iloc[0]
-        )
-        fund_end_value = year_df["nav_adjusted"].iloc[-1]
-        fund_return = fund_end_value / fund_start_value - 1
-        fund_max_drawdown = get_max_drawdown(year_df, "nav_adjusted")
-
-        benchmark_start_value = (
-            nav_year_end[nav_year_end["date"].dt.year == (year - 1)][
-                benchmark_code
-            ].iloc[0]
-            if year > years.min()
-            else year_df[benchmark_code].iloc[0]
-        )
-        benchmark_end_value = year_df[benchmark_code].iloc[-1]
-        benchmark_return = benchmark_end_value / benchmark_start_value - 1
-        benchmark_max_drawdown = get_max_drawdown(year_df, benchmark_code)
-
-        excess_return = fund_return - benchmark_return
-        new_row = pd.DataFrame(
-            [
-                [
-                    year,
-                    fund_return,
-                    fund_max_drawdown,
-                    benchmark_return,
-                    benchmark_max_drawdown,
-                    excess_return,
-                ]
-            ],
-            columns=year_return.columns,
-        )
-        year_return = pd.concat([year_return, new_row], ignore_index=True)
-    return year_return
-
-
 # 时间格式转换
 def format_date(
     date: Union[datetime.datetime, datetime.date, np.datetime64, int, str]
@@ -624,17 +562,3 @@ def format_date(
         return pd.to_datetime(date.date())
     else:
         raise TypeError("date should be str, int or timestamp!")
-
-
-# import os
-# data = pd.read_excel(r"C:\Users\17820\Desktop\Private_nav_research\nav_data\私募产品净值数据.xlsx")
-# code = list(data["产品代码"].unique())
-# folder_name = 'data'
-# if not os.path.exists(folder_name):
-#     os.makedirs(folder_name)
-# for i in code:
-#     data_i = data[data["产品代码"]==i]
-#     file_name = os.path.join(folder_name, f'{i}.csv')
-#     data_i.to_csv(file_name, index=False)
-# basic_info = pd.read_excel(r"C:\Users\17820\Desktop\Private_nav_research\nav_data\产品目录.xlsx")
-# basic_info['产品代码'] = basic_info['产品代码'].astype(str)

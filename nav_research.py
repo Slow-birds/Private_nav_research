@@ -28,6 +28,7 @@ class NavResearch:
         benchmark_code,
         benchmark_name,
         threshold,
+        end_date_dt = None,
     ):
         self.nav_data_path = nav_data_path
         self.strategy = strategy
@@ -37,6 +38,7 @@ class NavResearch:
         self.freq = None
         self.risk_free_rate = 0.02
         self.threshold = threshold
+        self.end_date_dt = end_date_dt
 
     # df_nav, df_return, df_drawdown
     def get_data(self):
@@ -46,6 +48,7 @@ class NavResearch:
         nav_df = nav_normalization(original_df)
         freq = infer_frequency(nav_df)
         nav_df = date_normalization(nav_df, freq)
+        nav_df = nav_df[(nav_df["date"] <= self.end_date_dt)]
         start_day = nav_df["date"].min().strftime("%Y-%m-%d")
         end_day = nav_df["date"].max().strftime("%Y-%m-%d")
         self.original_df = original_df

@@ -34,12 +34,13 @@ files_list_series = pd.Series(
     ]
 )
 for row in basic_info.itertuples(index=False, name=None):
+    end_day = "2025-07-25"
     nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
     assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
-    demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6])
+    demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6], end_day)
     demo.get_data()
     tables = demo.get_analysis_table()
-    nav_df = multi_fund_comparison(tables, row[3])
+    nav_df = multi_fund_comparison(tables)
     data = pd.concat([data, nav_df], axis=0)
 
 with pd.ExcelWriter(
