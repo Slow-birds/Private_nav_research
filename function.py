@@ -91,7 +91,7 @@ def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
     return nav_df[["date", "nav_adjusted"]].round(4)
 
 # 日期频率推断
-def infer_frequency(fund_name: str, nav_df: pd.DataFrame):
+def infer_frequency(nav_df: pd.DataFrame):
     date = nav_df["date"].values
     if (np.diff(date) == np.timedelta64(1, "D")).mean() > 0.75:
         return "D"
@@ -204,58 +204,227 @@ def benchmark_data(code, start_day, end_day):
     benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
     return benchmark_df
 
-def calc_nav_rtn(nav: np.ndarray, types: Literal["log", "simple"] = "log"):
-    if types == "simple":
-        rtn = nav[1:] / nav[:-1] - 1
-    elif types == "log":
-        rtn = np.log(nav[1:] / nav[:-1])
-    else:
-        raise ValueError("types参数错误")
-    return np.insert(rtn, 0, np.nan)
+# 中间变量
+def intermediate_df(nav_df, benchmark_code):
+    # 获取基准数据、合并数据
+    start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+    end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+    benchmark_df = benchmark_data(benchmark_code, start_day, end_day)
+    df = pd.merge(nav_df, benchmark_df, on="date", how="left")
+    # 辅助数据
+    ## df_nav
+    df["excess_nav"] = df["nav_adjusted"] - df[benchmark_code] + 1
+    df_nav = df[["date","nav_adjusted",benchmark_code,"excess_nav"]].round(4)
+    df_nav.drop_duplicates(subset=["date"], inplace=True)
+    ## df_return
+    df["nav_return"] = df["nav_adjusted"].pct_change()
+    df["benchmark_return"] = df[benchmark_code].pct_change()
+    df[["nav_return", "benchmark_return"]] = df[["nav_return", "benchmark_return"]].fillna(0)
+    df["excess_return"] = df["nav_return"] - df["benchmark_return"]
+    df_return = df[["date", "nav_return", "benchmark_return", "excess_return"]].round(4)
+    ## df_drawdown
+    df_nav_copy = df_nav.copy()
+    df_nav_copy["fun_max_so_far"] = df_nav_copy["nav_adjusted"].cummax()
+    df_nav_copy["fund_drawdown"] = (df_nav_copy["nav_adjusted"] - df_nav_copy["fun_max_so_far"]) / df_nav_copy["fun_max_so_far"]
+    df_nav_copy["benchmark_max_so_far"] = df_nav_copy[benchmark_code].cummax()
+    df_nav_copy["benchmark_drawdown"] = (df_nav_copy[benchmark_code] - df_nav_copy["benchmark_max_so_far"]) / df_nav_copy["benchmark_max_so_far"]
+    df_nav_copy["excess_max_so_far"] = df_nav_copy["excess_nav"].cummax()
+    df_nav_copy["excess_drawdown"] = (df_nav_copy["excess_nav"] - df_nav_copy["excess_max_so_far"]) / df_nav_copy["excess_max_so_far"]
+    df_drawdown = df_nav_copy[["date", "fund_drawdown", "benchmark_drawdown", "excess_drawdown"]].round(4)
+    return df_nav, df_return, df_drawdown
 
+# 整体业绩指标
+def calculate_overall_performance(df_nav, df_drawdown, df_return, freq):
+    df_nav = df_nav.copy()
+    df_drawdown = df_drawdown.copy()
+    df_return = df_return.copy()
+    days_diff = (df_nav["date"].max() - df_nav["date"].min()).days
+    ## total_return
+    total_return = df_nav["nav_adjusted"].iloc[-1] /df_nav["nav_adjusted"].iloc[0]- 1
+    excess_total_return = df_nav["excess_nav"].iloc[-1] / df_nav["excess_nav"].iloc[0] - 1
+    ## annual_return
+    annual_return = pow(1 + total_return, 365 / days_diff) - 1
+    excess_annual_return = pow(1 + excess_total_return, 365 / days_diff) - 1
+    ## max_drawdown
+    max_drawdown = df_drawdown["fund_drawdown"].min()
+    excess_max_drawdown = df_drawdown["excess_drawdown"].min()
+    ## annual_volatility
+    annual_volatility = df_return["nav_return"].std() * np.sqrt(250 if freq == "D" else 52)
+    excess_annual_volatility = df_return["excess_return"].std() * np.sqrt(250 if freq == "D" else 52)
+    ## sharpe_ratio
+    sharpe_ratio = (annual_return - 0.02) / annual_volatility
+    excess_sharpe_ratio = (excess_annual_return - 0.02) / excess_annual_volatility
+    list = [["产品收益",total_return,annual_return,max_drawdown,annual_volatility,sharpe_ratio],["超额收益",excess_total_return,excess_annual_return,excess_max_drawdown,excess_annual_volatility,excess_sharpe_ratio]]
+    overall_performance = pd.DataFrame(list,columns=['整体收益','总收益','年化收益','最大回撤','年化波动率','夏普比'])
+    # 格式化
+    for col in overall_performance.columns:
+        overall_performance['夏普比'] = overall_performance['夏普比'].round(2)
+        if col != '夏普比' and col != '整体收益': 
+            overall_performance[col] = overall_performance[col].map(lambda x: f"{x:.2%}")
+    return overall_performance
 
-def win_ratio_stastics(nav: np.ndarray, date: np.ndarray[np.datetime64]):
+# max_drawdown
+def get_max_drawdown(df_nav, column_name):
+    df_nav[f"{column_name}_max_so_far"] = df_nav[column_name].cummax()
+    df_nav[f"{column_name}_drawdown"] = (
+        df_nav[column_name] - df_nav[f"{column_name}_max_so_far"]
+    ) / df_nav[f"{column_name}_max_so_far"]
+    max_drawdown = df_nav[f"{column_name}_drawdown"].min()
+    return max_drawdown
+
+def calculate_annual_performance(df_nav: pd.DataFrame, benchmark_code: str) -> pd.DataFrame:
+    # 确保日期是datetime类型并按日期排序（避免inplace修改）
+    df_nav = df_nav.sort_values('date').copy()  # 只在需要时复制一次
+    # 获取每年最后一天的记录
+    year_end_nav = df_nav.groupby(df_nav['date'].dt.year).last()
+    # 初始化结果DataFrame
+    results = []
+    years = sorted(df_nav['date'].dt.year.unique())
+    for i, year in enumerate(years):
+        year_data = df_nav[df_nav['date'].dt.year == year]
+        # 计算年初价值
+        if i == 0:
+            fund_start = year_data['nav_adjusted'].iloc[0]
+            bench_start = year_data[benchmark_code].iloc[0]
+        else:
+            fund_start = year_end_nav.loc[years[i-1]]['nav_adjusted']
+            bench_start = year_end_nav.loc[years[i-1]][benchmark_code]
+        # 计算年末价值和收益率
+        fund_end = year_data['nav_adjusted'].iloc[-1]
+        bench_end = year_data[benchmark_code].iloc[-1]
+        fund_return = fund_end / fund_start - 1
+        bench_return = bench_end / bench_start - 1
+        excess_return = fund_return - bench_return
+        # 计算最大回撤
+        fund_mdd = get_max_drawdown(year_data, 'nav_adjusted')
+        bench_mdd = get_max_drawdown(year_data, benchmark_code)
+        results.append({
+            '分年度业绩': year,
+            '基金收益': fund_return,
+            '基金最大回撤': fund_mdd,
+            '基准收益': bench_return,
+            '基准最大回撤': bench_mdd,
+            '超额收益': excess_return
+        })
+    # 创建结果DataFrame并格式化
+    yearly_rtn = pd.DataFrame(results)
+    yearly_rtn.set_index('分年度业绩', inplace=True)
+    yearly_rtn.index.name = "分年度业绩"
+    # 更高效的小数处理方式（避免重复round）
+    yearly_rtn = yearly_rtn.applymap(lambda x: f"{round(x, 4):.2%}")
+    yearly_rtn.reset_index(inplace=True)
+    return yearly_rtn
+
+# 月度业绩指标
+def calculate_monthly_performance(df_nav):
+    df_nav = df_nav.copy()
     """
     目前只支持月度胜率统计
     """
-    assert len(nav) == len(date), "nav和date长度不一致"
-
-    nav_data = pd.DataFrame({"日期": date, "累计净值": nav})
-    # 找到日期序列中每个月的最后一天
-    nav_data["year_month"] = nav_data["日期"].dt.to_period("M")
-    monthly_rtn = nav_data.drop_duplicates(
-        subset="year_month", keep="last"
-    ).reset_index(drop=True)
-
-    monthly_rtn["rtn"] = calc_nav_rtn(monthly_rtn["累计净值"].values, types="simple")
-    monthly_rtn = monthly_rtn.copy()
-    monthly_rtn.iloc[0, monthly_rtn.columns.get_loc("rtn")] = (
-        monthly_rtn.iloc[0]["累计净值"] - 1
-    )
-    monthly_rtn["year"] = monthly_rtn["日期"].dt.year
-    monthly_rtn["month"] = monthly_rtn["日期"].dt.month
-    monthly_rtn = monthly_rtn.pivot_table(
-        index="year", columns="month", values="rtn", aggfunc="sum"
-    )
-
+    # 找到日期序列中每个月的最后一天,并求月度收益
+    monthly_rtn = df_nav.sort_values("date").groupby(df_nav["date"].dt.to_period("M")).tail(1).reset_index(drop=True)
+    monthly_rtn["rtn"] = monthly_rtn["nav_adjusted"] / monthly_rtn["nav_adjusted"].shift(1)-1
+    monthly_rtn.iloc[0, monthly_rtn.columns.get_loc("rtn")] = (monthly_rtn.iloc[0]["nav_adjusted"] - 1)
+    # 生成月度收益表
+    monthly_rtn["year"] = monthly_rtn["date"].dt.year
+    monthly_rtn["month"] = monthly_rtn["date"].dt.month
+    monthly_rtn = monthly_rtn.pivot_table(index="year", columns="month", values="rtn", aggfunc="sum")
     monthly_rtn.columns = [f"{x}月" for x in monthly_rtn.columns]
     monthly_rtn.index.name = None
-    # monthly_rtn["年度总收益"] = monthly_rtn.apply(lambda x: np.prod(x + 1) - 1, axis=1)
-    monthly_rtn["月度胜率"] = monthly_rtn.apply(
-        lambda x: (x >= 0).sum() / (~np.isnan(x)).sum(), axis=1
-    )
+    # 计算年度总收益和月度胜率
+    monthly_rtn["年度总收益"] = monthly_rtn.apply(lambda x: np.prod(x + 1) - 1, axis=1)
+    monthly_rtn["月度胜率"] = monthly_rtn.apply(lambda x: (x >= 0).sum() / (~np.isnan(x)).sum(), axis=1)
     # 保留四位小数
     monthly_rtn = monthly_rtn.map(lambda x: round(x, 4))
     for col in monthly_rtn.columns:
         monthly_rtn[col] = monthly_rtn[col].map(lambda x: f"{x:.2%}")
-
     # 将NAN变成NULL
-    if (monthly_rtn.iloc[0, :] == "nan%").sum() + 3 == monthly_rtn.shape[
-        1
-    ] and monthly_rtn.iloc[0, monthly_rtn.shape[1] - 3] == "0.000%":
+    if (monthly_rtn.iloc[0, :] == "nan%").sum() + 3 == monthly_rtn.shape[1] and monthly_rtn.iloc[0, monthly_rtn.shape[1] - 3] == "0.000%":
         monthly_rtn = monthly_rtn.iloc[1:]
+    monthly_rtn.reset_index(drop=True, inplace=True)
     return monthly_rtn.replace("nan%", "")
 
+# drawdown table
+def calculate_drawdown(df_nav, df_drawdown, threshold):
+    df_nav = df_nav.copy()
+    df_drawdown = df_drawdown.copy()
+    # 初始化
+    drawdowns = []
+    start_idx = None
+    end_idx = None
+    peak_value = None
+    for i in range(1, len(df_nav)):
+        if start_idx is None and df_drawdown["fund_drawdown"].iloc[i] < 0:
+            # 回撤开始
+            start_idx = i - 1
+            peak_value = df_nav["nav_adjusted"].iloc[i - 1]
+        elif start_idx is not None:
+            # 检查是否回升到回撤前的水平
+            if df_nav["nav_adjusted"].iloc[i] >= peak_value:
+                # 回补结束
+                end_idx = i
+                # 记录回撤信息
+                drawdown_start_date = df_drawdown["date"].iloc[start_idx]
+                drawdown_end_date = df_drawdown["date"].iloc[
+                    np.argmin(df_drawdown["fund_drawdown"][start_idx:end_idx])
+                    + start_idx
+                ]
+                reset_end_date = df_drawdown["date"].iloc[end_idx]
+                fund_drawdown_percentage = df_drawdown["fund_drawdown"].iloc[
+                    np.argmin(df_drawdown["fund_drawdown"][start_idx:end_idx])
+                    + start_idx
+                ]
+                drawdowns.append(
+                    (
+                        drawdown_start_date,
+                        drawdown_end_date,
+                        reset_end_date,
+                        fund_drawdown_percentage,
+                    )
+                )
+                # 重置变量以寻找下一个回撤
+                start_idx = None
+                peak_value = None
+    # 检查遍历结束后是否还有未完成的回撤
+    if start_idx is not None:
+        # 假设回撤结束于数据的最后一天
+        end_idx = len(df_drawdown) - 1
+        drawdown_start_date = df_drawdown["date"].iloc[start_idx]
+        drawdown_end_date = df_drawdown["date"].iloc[
+            np.argmin(df_drawdown["fund_drawdown"][start_idx:end_idx])
+            + start_idx
+        ]
+        # 注意：这里我们假设没有回补，所以reset_end_date就是数据的最后一天
+        reset_end_date = df_drawdown["date"].iloc[end_idx]
+        fund_drawdown_percentage = df_drawdown["fund_drawdown"].iloc[
+            np.argmin(df_drawdown["fund_drawdown"][start_idx:end_idx])
+            + start_idx
+        ]
+        drawdowns.append(
+            (
+                drawdown_start_date,
+                drawdown_end_date,
+                reset_end_date,
+                fund_drawdown_percentage,
+            )
+        )
+    data_drawdown = pd.DataFrame(
+        drawdowns, columns=["回撤开始时间", "回撤结束时间", "回补结束时间", "回撤"]
+    )
+    data_drawdown["回撤天数"] = (
+        data_drawdown["回撤结束时间"] - data_drawdown["回撤开始时间"]
+    )
+    data_drawdown["回补天数"] = (
+        data_drawdown["回补结束时间"] - data_drawdown["回撤结束时间"]
+    )
+    filtered_data = data_drawdown[data_drawdown["回撤"] < threshold]
+    filtered_data.loc[
+        filtered_data["回补结束时间"] == df_drawdown["date"].max(),
+        ["回补结束时间", "回补天数"],
+    ] = ""
+    filtered_data["回撤"] = filtered_data["回撤"].map(lambda x: f"{x*100:.2f}%")
+    drawdown_table = filtered_data
+    return drawdown_table
 
 def get_nav_lines(df, fund_name, benchmark_name):
 
@@ -375,14 +544,7 @@ def get_line(df, title):
 
 
 # 暂时弃用
-# max_drawdown
-def get_max_drawdown(df_nav, column_name):
-    df_nav[f"{column_name}_max_so_far"] = df_nav[column_name].cummax()
-    df_nav[f"{column_name}_drawdown"] = (
-        df_nav[column_name] - df_nav[f"{column_name}_max_so_far"]
-    ) / df_nav[f"{column_name}_max_so_far"]
-    max_drawdown = df_nav[f"{column_name}_drawdown"].min()
-    return max_drawdown
+
 
 
 def calculate_annual_metrics(df, fund_name, benchmark_code, benchmark_name):
