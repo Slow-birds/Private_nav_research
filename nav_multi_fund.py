@@ -3,9 +3,7 @@ from nav_research import NavResearch
 import pandas as pd
 from pathlib import Path
 
-basic_info = load_data("产品目录.xlsx")
-
-def multi_fund_comparison(tables):
+def single_fund_ratio(tables):
     data1 = tables[0]
     data2 = tables[1].head(1)
     data3 = pd.DataFrame()
@@ -25,27 +23,30 @@ def multi_fund_comparison(tables):
     data.drop(columns=["基准指数","整体收益"], inplace=True)
     return data
 
-data = pd.DataFrame()
-files_list_series = pd.Series(
-    [
-        i
-        for i in Path("./data").rglob("*")
-        if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
-    ]
-)
-for row in basic_info.itertuples(index=False, name=None):
-    end_day = "2025-07-25"
-    nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
-    assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
-    demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6], end_day)
-    demo.get_data()
-    tables = demo.get_analysis_table()
-    nav_df = multi_fund_comparison(tables)
-    data = pd.concat([data, nav_df], axis=0)
+def multi_fund_comparison(basic_info, end_day = "2025-07-25"):
+    data = pd.DataFrame()
+    files_list_series = pd.Series(
+        [
+            i
+            for i in Path("./data").rglob("*")
+            if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
+        ]
+    )
+    for row in basic_info.itertuples(index=False, name=None):
+        nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
+        assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
+        demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6], end_day)
+        demo.get_data()
+        tables = demo.get_analysis_table()
+        nav_df = single_fund_ratio(tables)
+        data = pd.concat([data, nav_df], axis=0)
 
-with pd.ExcelWriter(
-    "data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
-) as writer:
-    data.to_excel(writer, sheet_name="huofuniu", index=False)
+if __name__ == "__main__":
+    basic_info = load_data("产品目录.xlsx")
+    data = multi_fund_comparison(basic_info, end_day = "2025-07-25")
+    with pd.ExcelWriter(
+        "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
+    ) as writer:
+        data.to_excel(writer, sheet_name="sheet1", index=False)
 
-print("数据已保存到data.xlsx")
+    print("数据已保存到report_data.xlsx")

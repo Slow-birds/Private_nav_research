@@ -7,7 +7,7 @@ import copy
 from WindPy import w
 
 w.start()
-from function import *
+from support_code.function import *
 import pyecharts.options as opts
 from pyecharts.charts import Line
 from pyecharts.globals import ThemeType
@@ -49,7 +49,6 @@ class NavResearch:
         freq = infer_frequency(original_df)
         nav_df = date_normalization(original_df, freq)
         nav_df = nav_df[(nav_df["date"] <= self.end_date_dt)]
-        print(nav_df.head())
         start_day = nav_df["date"].min().strftime("%Y-%m-%d")
         end_day = nav_df["date"].max().strftime("%Y-%m-%d")
         self.freq = freq

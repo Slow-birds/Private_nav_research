@@ -8,6 +8,8 @@ import copy
 from pyecharts.charts import Line
 import pyecharts.options as opts
 from typing import Literal
+from datetime import timedelta
+from pandas_market_calendars import get_calendar
 from WindPy import w
 w.start()
 
@@ -531,3 +533,43 @@ def format_date(
         return pd.to_datetime(date.date())
     else:
         raise TypeError("date should be str, int or timestamp!")
+
+def delete_csv_files(directory: str)-> None:
+    '''删除指定目录下所有CSV文件'''
+    path = Path(directory)
+    for csv_file in path.rglob("*.csv"):
+        csv_file.unlink()
+        print(f"Deleted: {csv_file.name}")
+
+#获取所有交易日
+def get_tradedays(starttime, endtime):
+    shanghai_calendar = get_calendar("XSHG")
+    trading_days_index = shanghai_calendar.schedule(
+        start_date=starttime, end_date=endtime
+    ).index
+    all_trading_days = pd.DataFrame(
+        trading_days_index.to_series().reset_index(drop=True), columns=["日期"]
+    )
+    all_trading_days = all_trading_days["日期"].to_list()
+    return all_trading_days
+# 获取基准日
+def get_benchmark_date(end_date, all_tradedays):
+    tradedays = pd.DataFrame(all_tradedays, columns=['交易日'])
+    def get_nearest_tradeday(date):
+        # 创建一个临时 DataFrame 用于 merge_asof
+        temp_df = pd.DataFrame([date], columns=['基准日'])
+        merged = pd.merge_asof(
+            temp_df, 
+            tradedays, 
+            left_on="基准日", 
+            right_on="交易日", 
+            direction="backward"
+        )
+        return merged["交易日"].iloc[0].strftime("%Y-%m-%d")
+    year_end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
+    month_end_date = end_date.replace(day=1) - timedelta(days=1)
+    week_end_date = end_date - timedelta(days=end_date.weekday() + 1) 
+    year_begin_date = get_nearest_tradeday(year_end_date)
+    month_begin_date = get_nearest_tradeday(month_end_date)
+    week_begin_date = get_nearest_tradeday(week_end_date)
+    return year_begin_date, month_begin_date, week_begin_date
