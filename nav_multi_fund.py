@@ -2,6 +2,7 @@ from function import load_data
 from nav_research import NavResearch
 import pandas as pd
 from pathlib import Path
+import datetime
 
 def single_fund_ratio(tables):
     data1 = tables[0]
@@ -36,10 +37,15 @@ def multi_fund_comparison(basic_info, end_day = "2025-07-25"):
         nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
         assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
         demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6], end_day)
-        demo.get_data()
+        nav_df = demo.get_data()
         tables = demo.get_analysis_table()
-        nav_df = single_fund_ratio(tables)
-        data = pd.concat([data, nav_df], axis=0)
+        nav_ratio = single_fund_ratio(tables)
+        # 增加近一月、近一周收益列
+        enddate = datetime.datetime.strptime(end_day, "%Y-%m-%d")
+        nav_ratio[f"{enddate.month}月收益"] = tables[3].loc[tables[3]["分月度业绩"] == enddate.year,f"{enddate.month}月"].item()
+        nav_ratio["近一周收益"] = (f"{(nav_df['nav_adjusted'].iloc[-1] / nav_df['nav_adjusted'].iloc[-2] - 1):.2%}")
+        data = pd.concat([data, nav_ratio], axis=0)
+    return data
 
 if __name__ == "__main__":
     basic_info = load_data("产品目录.xlsx")
