@@ -28,7 +28,7 @@ class NavResearch:
         benchmark_code,
         benchmark_name,
         threshold,
-        end_date_dt = None,
+        end_date_dt = datetime.datetime.now(),
     ):
         self.nav_data_path = nav_data_path
         self.strategy = strategy
@@ -44,14 +44,14 @@ class NavResearch:
     def get_data(self):
         # 净值数据读取、标准化、日期规范
         original_df = load_data(self.nav_data_path)
-        original_df = column_normalization(original_df)
-        nav_df = nav_normalization(original_df)
-        freq = infer_frequency(nav_df)
-        nav_df = date_normalization(nav_df, freq)
+        original_df = nav_normalization(original_df)
+        self.original_df = original_df
+        freq = infer_frequency(original_df)
+        nav_df = date_normalization(original_df, freq)
         nav_df = nav_df[(nav_df["date"] <= self.end_date_dt)]
+        print(nav_df.head())
         start_day = nav_df["date"].min().strftime("%Y-%m-%d")
         end_day = nav_df["date"].max().strftime("%Y-%m-%d")
-        self.original_df = original_df
         self.freq = freq
         self.nav_df = nav_df
         self.start_day = start_day

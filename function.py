@@ -77,7 +77,9 @@ def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
         nav_df["date"] = pd.to_datetime(nav_df["date"])
     nav_df = nav_df.sort_values(by="date", ascending=True).reset_index(drop=True)
     # 判断是否有复权净值列
-    if "nav_adjusted" not in nav_df.columns:
+    if ("nav_adjusted" in nav_df.columns and "nav_unit" not in nav_df.columns and "nav_accumulated" not in nav_df.columns):
+        nav_df = nav_df[["date", "nav_adjusted"]].round(4)
+    else:
         # 检查是否有日期/单位净值/累计净值为空和日期重复的数据
         assert "nav_unit" in nav_df.columns, "Error: 未找到单位净值列"
         assert "nav_accumulated" in nav_df.columns, "Error: 未找到累计净值列"
@@ -88,7 +90,8 @@ def nav_normalization(nav_df: pd.DataFrame) -> pd.DataFrame:
         nav_df["nav_accumulated"] = nav_df["nav_accumulated"] / nav_df["nav_accumulated"].iloc[0]
         # 复权净值
         nav_df = nav_adjusted(nav_df)
-    return nav_df[["date", "nav_adjusted"]].round(4)
+        nav_df = nav_df[["date", "nav_unit", "nav_accumulated", "nav_adjusted"]].round(4)
+    return nav_df
 
 # 日期频率推断
 def infer_frequency(nav_df: pd.DataFrame):
@@ -272,6 +275,7 @@ def get_max_drawdown(df_nav, column_name):
     max_drawdown = df_nav[f"{column_name}_drawdown"].min()
     return max_drawdown
 
+# 年度业绩指标
 def calculate_annual_performance(df_nav: pd.DataFrame, benchmark_code: str) -> pd.DataFrame:
     # 确保日期是datetime类型并按日期排序（避免inplace修改）
     df_nav = df_nav.sort_values('date').copy()  # 只在需要时复制一次
@@ -341,10 +345,11 @@ def calculate_monthly_performance(df_nav):
     # 将NAN变成NULL
     if (monthly_rtn.iloc[0, :] == "nan%").sum() + 3 == monthly_rtn.shape[1] and monthly_rtn.iloc[0, monthly_rtn.shape[1] - 3] == "0.000%":
         monthly_rtn = monthly_rtn.iloc[1:]
-    monthly_rtn.reset_index(drop=True, inplace=True)
+    monthly_rtn.reset_index(inplace=True)
+    monthly_rtn = monthly_rtn.rename(columns={monthly_rtn.columns[0]: '分月度业绩'})
     return monthly_rtn.replace("nan%", "")
 
-# drawdown table
+# 回撤情况
 def calculate_drawdown(df_nav, df_drawdown, threshold):
     df_nav = df_nav.copy()
     df_drawdown = df_drawdown.copy()
@@ -427,7 +432,6 @@ def calculate_drawdown(df_nav, df_drawdown, threshold):
     return drawdown_table
 
 def get_nav_lines(df, fund_name, benchmark_name):
-
     x_data = df["date"].dt.strftime("%Y-%m-%d").tolist()
     ys_data = (
         (df.drop(columns=["date"], axis=1) - 1) * 100
@@ -503,41 +507,6 @@ def get_drawdown_lines(df, fund_name, benchmark_name):
         linestyle_opts=opts.LineStyleOpts(width=2),
     )
     # line.render_notebook()
-    return line
-
-def format_index(df: pd.DataFrame):
-    x = df.index.values
-    if x.dtype == "datetime64[ns]":
-        x = np.datetime_as_string(x, unit="D")
-    df.index = x
-    return df
-
-def get_line(df, title):
-    df = format_index(df)
-    x = df.index
-    y = df.reset_index(drop=True).round(2)
-    y_min = y.min().min()
-    y_max = y.max().max()
-    line = Line()
-    line.add_xaxis(list(x))
-    for i in df.columns:
-        line.add_yaxis(i, list(y[i]), is_symbol_show=False)
-    yaxis_opts = opts.AxisOpts(
-        min_=y_min,
-        max_=y_max,
-        # type_="value",
-        # name_="Y轴名称",
-        # axislabel_opts=opts.LabelOpts(formatter="{value} 单位"),
-    )
-    line.set_global_opts(
-        title_opts=opts.TitleOpts(title=title, pos_left="center", pos_top="0"),  # 标题
-        legend_opts=opts.LegendOpts(pos_left="center", pos_bottom="0%"),  # 图例
-        tooltip_opts=opts.TooltipOpts(trigger="axis"),  # 提示框
-        yaxis_opts=yaxis_opts,
-        # toolbox_opts=opts.ToolboxOpts(is_show=True, pos_left = '65%', pos_top='5%'), # 工具箱
-        # datazoom_opts=[opts.DataZoomOpts(range_start=0, range_end=100, orient="horizontal")] # 区域缩放条
-    )
-    line.set_series_opts(linestyle_opts=opts.LineStyleOpts(width=2))
     return line
 
 # 时间格式转换

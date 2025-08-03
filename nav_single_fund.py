@@ -9,7 +9,8 @@ threshold = -0.05
 
 demo = NavResearch(data_path,strategy,fund_name,benchmark_code,benchmark_name,threshold)
 demo.get_data()
-demo.get_analysis_table()
+tables = demo.get_analysis_table()
+print(tables[3])
 demo.get_html()
 
 print(f"{fund_name}-网页已生成")
