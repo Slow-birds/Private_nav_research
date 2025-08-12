@@ -49,7 +49,7 @@ def multi_fund_comparison(basic_info, end_day = "2025-07-25"):
 
 if __name__ == "__main__":
     basic_info = load_data("产品目录.xlsx")
-    data = multi_fund_comparison(basic_info, end_day = "2025-08-01")
+    data = multi_fund_comparison(basic_info, end_day = "2025-08-08")
     with pd.ExcelWriter(
         "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
     ) as writer:
