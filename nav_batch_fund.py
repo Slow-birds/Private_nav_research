@@ -4,7 +4,7 @@ from WindPy import w
 
 w.start()
 from function import *
-from nav_research import NavResearch
+from NavResearch import NavResearch
 from pathlib import Path
 import os
 import warnings

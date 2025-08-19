@@ -1,5 +1,5 @@
 from function import load_data
-from nav_research import NavResearch
+from NavResearch import NavResearch
 import pandas as pd
 from pathlib import Path
 import datetime

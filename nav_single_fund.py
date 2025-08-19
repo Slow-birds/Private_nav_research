@@ -1,4 +1,4 @@
-from nav_research import NavResearch
+from NavResearch import NavResearch
 
 data_path = r"E:\桌面文件\Vscode\Private_nav_research\Ksicn_SP2_DailyReport_20250801Fullday.xlsx"
 strategy = "主观多头"
