@@ -42,14 +42,15 @@ def multi_fund_comparison(basic_info, end_day = "2025-07-25"):
         nav_ratio = single_fund_ratio(tables)
         # 增加近一月、近一周收益列
         enddate = datetime.datetime.strptime(end_day, "%Y-%m-%d")
-        nav_ratio[f"{enddate.month}月收益"] = tables[3].loc[tables[3]["分月度业绩"] == enddate.year,f"{enddate.month}月"].item()
+        # nav_ratio[f"{enddate.month}月收益"] = tables[3].loc[tables[3]["分月度业绩"] == enddate.year,f"{enddate.month}月"].item()
+        nav_ratio["近一月收益"] = (f"{(nav_df['nav_adjusted'].iloc[-1] / nav_df[nav_df['date']== "2025-07-18"]["nav_adjusted"].iloc[0]- 1):.2%}")
         nav_ratio["近一周收益"] = (f"{(nav_df['nav_adjusted'].iloc[-1] / nav_df['nav_adjusted'].iloc[-2] - 1):.2%}")
         data = pd.concat([data, nav_ratio], axis=0)
     return data
 
 if __name__ == "__main__":
     basic_info = load_data("产品目录.xlsx")
-    data = multi_fund_comparison(basic_info, end_day = "2025-08-15")
+    data = multi_fund_comparison(basic_info, end_day = "2025-08-22")
     with pd.ExcelWriter(
         "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
     ) as writer:
