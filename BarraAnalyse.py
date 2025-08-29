@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import statsmodels.api as sm
+from function import *
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -17,13 +18,36 @@ class BarraAnalyse:
         nav_df.rename(columns={'日期': 'date'}, inplace=True)
         nav_df["date"] = pd.to_datetime(nav_df["date"])
         nav_df.sort_values(by=['date'], inplace=True)
-        nav_df["nav_return"] = nav_df["复权净值"]/nav_df["复权净值"].shift(1) - 1
+        nav_df["nav_return"] = nav_df["复权净值"].pct_change()
         nav_return = nav_df[["date", "nav_return"]]
-        # 获取因子收益数据（日度）
-        factor_df = pd.read_excel(self.factor_data_path)
-        factor_df["date"] = pd.to_datetime(factor_df["date"])
+        
+        # 读取并处理因子数据
+        factor_return = pd.read_excel(self.factor_data_path)
+        factor_return["date"] = pd.to_datetime(factor_return["date"])
+        factor_return.set_index("date",inplace=True)
+        ## 重采样为周度
+        data = factor_return.add(1).resample('W').prod().sub(1)
+        data.reset_index(inplace=True)
+        data['week_number'] = data["date"].dt.isocalendar().week
+        data['year'] = data["date"].dt.year
+        ## 生成周度数据
+        start_day = factor_return.index.min().strftime("%Y-%m-%d")
+        end_day = factor_return.index.max().strftime("%Y-%m-%d")
+        trade_date, weekly_trade_date = generate_trading_date(
+            begin_date=pd.to_datetime(start_day) - pd.Timedelta(days=10),
+            end_date=pd.to_datetime(end_day) + pd.Timedelta(days=10),
+            )
+        last_dates_df = pd.DataFrame({
+            'week_number': pd.DatetimeIndex(weekly_trade_date).isocalendar().week,
+            'year': pd.DatetimeIndex(weekly_trade_date).year
+        }, index=weekly_trade_date)
+        last_dates_df.reset_index(inplace=True, names=['date'])
+        ## 重置日期列
+        merged_df = pd.merge(data, last_dates_df, on=['year', 'week_number'], how='left')
+        merged_df.drop(columns=["year","week_number","date_x"], inplace=True)
+        merged_df.rename(columns={"date_y": "date"}, inplace=True)
         # 合并数据
-        df = pd.merge(nav_return, factor_df, on='date', how='left')
+        df = pd.merge(nav_return, merged_df, on='date', how='left')
         df.dropna(inplace=True)
         df.reset_index(drop=True, inplace=True)
         X = df.drop(columns=['date',"nav_return","country"])
@@ -32,7 +56,7 @@ class BarraAnalyse:
         self.X = X
         self.y = y
         return df, X, y
-
+   
     def get_style_exposure(self):
         model = sm.OLS(self.y, sm.add_constant(self.X)).fit()
         coefficients = model.params.reset_index()
@@ -41,22 +65,8 @@ class BarraAnalyse:
         coefficients_barra.sort_values(by='coefficient', ascending=False, inplace=True)
         coefficients_industry = coefficients[2:33]
         coefficients_industry.sort_values(by='coefficient', ascending=False, inplace=True)
-        # 创建柱状图
-        plt.figure(figsize=(10, 6))
-        plt.bar(coefficients_barra["factor"], coefficients_barra["coefficient"])
-        plt.xticks(rotation=45, ha='right')
-        plt.ylabel('Coefficient Value')
-        plt.title('Regression Coefficients')
-        plt.tight_layout()
-        plt.show()
-        # 创建柱状图
-        plt.figure(figsize=(10, 6))
-        plt.bar(coefficients_industry["factor"], coefficients_industry["coefficient"])
-        plt.xticks(rotation=45, ha='right')
-        plt.ylabel('Coefficient Value')
-        plt.title('Regression Coefficients')
-        plt.tight_layout()
-        plt.show()
+        self.plot_coefficients(coefficients_barra, 'Barra Factors Regression Coefficients')
+        self.plot_coefficients(coefficients_industry, 'Industry Factors Regression Coefficients')
         return coefficients_barra, coefficients_industry
     
     def get_barra(self):
@@ -78,16 +88,17 @@ class BarraAnalyse:
         data_return["residual_return_cumsum"] = data_return["nav_return_cumsum"] - data_return["barra_return_cumsum"] - data_return["industry_return_cumsum"]
         data_return.set_index("date", inplace=True)
         # 画Wind商品指数20日滚动年化波动率图
-        fig, (ax1) = plt.subplots(nrows=1, figsize=(20, 8))
-        ax1.plot(data_return["nav_return_cumsum"], label="nav_return_cumsum", linewidth=2.5)
-        ax1.plot(data_return["barra_return_cumsum"], label='barra_return_cumsum', linewidth=2.5)
-        ax1.plot(data_return["industry_return_cumsum"], label='industry_return_cumsum', linewidth=2.5)
-        ax1.plot(data_return["residual_return_cumsum"], label='residual_return_cumsum', linewidth=2.5)
+        fig, (ax1) = plt.subplots(nrows=1, figsize=(12, 6))
+        ax1.plot(data_return["nav_return_cumsum"], label="nav_return_cumsum")
+        ax1.plot(data_return["barra_return_cumsum"], label='barra_return_cumsum')
+        ax1.plot(data_return["industry_return_cumsum"], label='industry_return_cumsum')
+        ax1.plot(data_return["residual_return_cumsum"], label='residual_return_cumsum')
         ax1.xaxis.set_major_locator(mdates.MonthLocator())
-        ax1.tick_params(axis="x", rotation=45, labelsize=15)
-        ax1.tick_params(axis="y", labelsize=15)
-        ax1.set_title("Cumulative Returns Decomposition", size=20)
-        ax1.legend(loc="upper left", fontsize=10)
+        ax1.tick_params(axis="x", rotation=45)
+        ax1.tick_params(axis="y")
+        ax1.set_title("Cumulative Returns Decomposition")
+        ax1.legend(loc="upper left")
+        plt.tight_layout()
         return data_return  
 
     def get_barra_rolling(self):
