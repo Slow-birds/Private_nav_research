@@ -47,7 +47,7 @@ if __name__ == "__main__":
     fund_info = pd.read_csv('fund_list.txt', delimiter=' ')
     for row in fund_info.itertuples(index=False, name=None):
         demo = NavData(row[0], row[1], row[2])
-        demo.delete_csv_file()
+        demo.delete_csv_file() 
         demo.get_nav_data()
         time.sleep(random.uniform(0.5, 1.5))
     print("所有产品净值爬取完成")
