@@ -23,16 +23,16 @@ class NavResearch:
     def __init__(
         self,
         nav_data_path,
-        strategy,
-        fund_name,
-        benchmark_code,
-        benchmark_name,
-        threshold,
+        strategy = "量化CTA",
+        fund_name = None,
+        benchmark_code = "NH0100.NHF",
+        benchmark_name = "南华商品指数",
+        threshold = -0.10,
         end_date_dt = datetime.datetime.now(),
     ):
         self.nav_data_path = nav_data_path
         self.strategy = strategy
-        self.fund_name = fund_name
+        self.fund_name = nav_data_path.name.split('_')[1]
         self.benchmark_code = benchmark_code
         self.benchmark_name = benchmark_name
         self.freq = None
