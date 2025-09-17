@@ -35,7 +35,7 @@ def multi_fund_comparison(basic_info, end_day = "2025-07-25"):
         ]
     )
     for row in basic_info.itertuples(index=False, name=None):
-        nav_df_path = files_list_series[files_list_series.apply(lambda x: row[3] in x.stem)]
+        nav_df_path = files_list_series[files_list_series.apply(lambda x: row[2] in x.stem)]
         assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
         demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6], end_day)
         nav_df = demo.get_data()
@@ -71,14 +71,13 @@ def multi_fund_comparison2(end_day = "2025-09-05"):
         data = pd.concat([data, nav_ratio], axis=0)
     return data
 
-
 if __name__ == "__main__":
-    basic_info = load_data("产品目录.xlsx")
+    basic_info = load_data("fund_list.csv")
     # data = multi_fund_comparison2(basic_info, end_day = "2025-09-05")
-    data = multi_fund_comparison2(end_day = "2025-09-12")
+    data = multi_fund_comparison(basic_info, end_day = "2025-09-12")
     with pd.ExcelWriter(
         "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
     ) as writer:
-        data.to_excel(writer, sheet_name="sheet2", index=False)
+        data.to_excel(writer, sheet_name="Sheet1", index=False)
 
     print("数据已保存到report_data.xlsx")
