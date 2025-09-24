@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import os
 import copy
+from pathlib import Path
 from WindPy import w
 
 w.start()
@@ -31,8 +32,9 @@ class NavResearch:
         end_date_dt = datetime.datetime.now(),
     ):
         self.nav_data_path = nav_data_path
+        print(nav_data_path)
         self.strategy = strategy
-        self.fund_name = nav_data_path.name.split('_')[1]
+        self.fund_name = Path(nav_data_path).name.split('_')[1]
         self.benchmark_code = benchmark_code
         self.benchmark_name = benchmark_name
         self.freq = None
