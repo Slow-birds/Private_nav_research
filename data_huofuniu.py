@@ -45,8 +45,9 @@ class NavData:
 
 if __name__ == "__main__":
     fund_info = pd.read_csv('fund_list.txt', delimiter=' ')
-    for row in fund_info.itertuples(index=False, name=None):
-        demo = NavData(row[0], row[1], row[2])
+    fund_info_hfn = fund_info[fund_info['数据来源'] == '火富牛']
+    for row in fund_info_hfn.itertuples(index=False, name=None):
+        demo = NavData(row[1], row[2], row[3])
         demo.delete_csv_file() 
         demo.get_nav_data()
         time.sleep(random.uniform(0.5, 1.5))
