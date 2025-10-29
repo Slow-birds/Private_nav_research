@@ -73,7 +73,7 @@ def multi_fund_comparison2(end_day = "2025-09-05"):
 
 if __name__ == "__main__":
     basic_info = load_data("fund_list.csv")
-    data = multi_fund_comparison(basic_info, end_day = "2025-10-10")
+    data = multi_fund_comparison(basic_info, end_day = "2025-10-17")
     # data = multi_fund_comparison2(basic_info, end_day = "2025-09-05")
     with pd.ExcelWriter(
         "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
