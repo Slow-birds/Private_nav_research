@@ -24,37 +24,49 @@ def single_fund_ratio(tables):
     data.drop(columns=["基准指数","整体收益"], inplace=True)
     return data
 
-# 多基金对比(excel表辅助)
-def multi_fund_comparison(basic_info, end_day = "2025-07-25"):
-    data = pd.DataFrame()
-    files_list_series = pd.Series(
-        [
-            i
-            for i in Path("./data").rglob("*")
-            if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
-        ]
-    )
-    for row in basic_info.itertuples(index=False, name=None):
-        nav_df_path = files_list_series[files_list_series.apply(lambda x: row[2] in x.stem)]
-        assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
-        demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6], end_day)
-        nav_df = demo.get_data()
-        tables = demo.get_analysis_table()
-        nav_ratio = single_fund_ratio(tables)
-        # 增加近一月、近一周收益列
-        enddate = datetime.datetime.strptime(end_day, "%Y-%m-%d")
-        nav_ratio[f"{enddate.month}月收益"] = tables[3].loc[tables[3]["分月度业绩"] == enddate.year,f"{enddate.month}月"].item()
-        # nav_ratio["近一月收益"] = (f"{(nav_df['nav_adjusted'].iloc[-1] / nav_df[nav_df['date']== "2025-08-29"]["nav_adjusted"].iloc[0]- 1):.2%}")
-        nav_ratio["近一周收益"] = (f"{(nav_df['nav_adjusted'].iloc[-1] / nav_df['nav_adjusted'].iloc[-2] - 1):.2%}")
-        data = pd.concat([data, nav_ratio], axis=0)
-    return data
+# # 多基金对比(excel表辅助)
+# def multi_fund_comparison(basic_info, end_day = "2025-07-25"):
+#     data = pd.DataFrame()
+#     files_list_series = pd.Series(
+#         [
+#             i
+#             for i in Path("./data").rglob("*")
+#             if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
+#         ]
+#     )
+#     for row in basic_info.itertuples(index=False, name=None):
+#         nav_df_path = files_list_series[files_list_series.apply(lambda x: row[2] in x.stem)]
+#         assert len(nav_df_path) == 1, "找到多个文件或者没有文件"
+#         demo = NavResearch(nav_df_path.item(), row[0], row[3], row[4], row[5], row[6], end_day)
+#         nav_df = demo.get_data()
+#         tables = demo.get_analysis_table()
+#         nav_ratio = single_fund_ratio(tables)
+#         # 增加近一月、近一周收益列
+#         enddate = datetime.datetime.strptime(end_day, "%Y-%m-%d")
+#         nav_ratio[f"{enddate.month}月收益"] = tables[3].loc[tables[3]["分月度业绩"] == enddate.year,f"{enddate.month}月"].item()
+#         # nav_ratio["近一月收益"] = (f"{(nav_df['nav_adjusted'].iloc[-1] / nav_df[nav_df['date']== "2025-08-29"]["nav_adjusted"].iloc[0]- 1):.2%}")
+#         nav_ratio["近一周收益"] = (f"{(nav_df['nav_adjusted'].iloc[-1] / nav_df['nav_adjusted'].iloc[-2] - 1):.2%}")
+#         data = pd.concat([data, nav_ratio], axis=0)
+#     return data
+
+# # 多基金对比(excel表辅助)
+# if __name__ == "__main__":
+#     basic_info = load_data("fund_list.csv")
+#     data = multi_fund_comparison(basic_info, end_day = "2025-10-24")
+#     with pd.ExcelWriter(
+#         "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
+#     ) as writer:
+#         data.to_excel(writer, sheet_name="Sheet1", index=False)
+#     print("数据已保存到report_data.xlsx")
+
+
 # 多基金对比(直接)
 def multi_fund_comparison2(end_day = "2025-09-05"):
     data = pd.DataFrame()
     files_list_series = pd.Series(
         [
             i
-            for i in Path("./temporary_data").rglob("*")
+            for i in Path(r"C:\Users\yueku\Desktop\VScode\numpy_pandas\03、js逆向\01、扣代码\排排网\data").rglob("*")
             if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
         ]
     )
@@ -71,13 +83,11 @@ def multi_fund_comparison2(end_day = "2025-09-05"):
         data = pd.concat([data, nav_ratio], axis=0)
     return data
 
+# 多基金对比(直接)
 if __name__ == "__main__":
-    basic_info = load_data("fund_list.csv")
-    data = multi_fund_comparison(basic_info, end_day = "2025-10-24")
-    # data = multi_fund_comparison2(basic_info, end_day = "2025-09-05")
+    data = multi_fund_comparison2(end_day = "2025-10-31")
     with pd.ExcelWriter(
         "report_data.xlsx", engine="openpyxl", mode="a", if_sheet_exists="replace"
     ) as writer:
-        data.to_excel(writer, sheet_name="Sheet1", index=False)
-
+        data.to_excel(writer, sheet_name="Sheet2", index=False)
     print("数据已保存到report_data.xlsx")
