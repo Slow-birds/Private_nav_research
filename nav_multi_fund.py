@@ -66,7 +66,7 @@ def multi_fund_comparison2(end_day = "2025-09-05"):
     files_list_series = pd.Series(
         [
             i
-            for i in Path(r"C:\Users\yueku\Desktop\VScode\numpy_pandas\03、js逆向\01、扣代码\排排网\data").rglob("*")
+            for i in Path(r"C:\Users\yueku\Desktop\VScode\Private_nav_research\data").rglob("*")
             if i.suffix.lower() in {".csv", ".xlsx", ".xls"}
         ]
     )
