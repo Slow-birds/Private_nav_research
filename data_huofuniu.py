@@ -44,7 +44,7 @@ class NavData:
         return nav_data
 
 if __name__ == "__main__":
-    fund_info = pd.read_csv(r'C:\Users\yueku\Desktop\VScode\numpy_pandas\03、js逆向\01、扣代码\排排网\fund_list.txt', delimiter=' ')
+    fund_info = pd.read_csv(r'E:\桌面文件\Vscode\Private_nav_research\fund_list.txt', delimiter=' ')
     fund_info_hfn = fund_info[fund_info['数据来源'] == '火富牛']
     for row in fund_info_hfn.itertuples(index=False, name=None):
         demo = NavData(row[1], row[2], row[3])
