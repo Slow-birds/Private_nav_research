@@ -1,6 +1,6 @@
 from NavResearch import NavResearch
 
-data_path = r"E:\桌面文件\Vscode\Private_nav_research\data\STW548_细水居20号_2025-09-12.csv"
+data_path = r"C:\Users\yueku\Desktop\VScode\Private_nav_research\data\AHS76B_博普安兴私享一号B类_2026-01-05.csv"
 strategy = "主观多头"
 fund_name = "SP2"
 benchmark_code = "399852.SZ"
