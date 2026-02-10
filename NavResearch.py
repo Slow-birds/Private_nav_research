@@ -49,26 +49,26 @@ class NavResearch:
         freq = infer_frequency(original_df)
         nav_df = date_normalization(original_df, freq)
         nav_df = nav_df[(nav_df["date"] <= self.end_date_dt)]
-        start_day = nav_df["date"].min().strftime("%Y%m%d")
-        end_day = nav_df["date"].max().strftime("%Y%m%d")
+        start_day = nav_df["date"].min().strftime("%Y-%m-%d")
+        end_day = nav_df["date"].max().strftime("%Y-%m-%d")
         self.freq = freq
         self.nav_df = nav_df
         self.start_day = start_day
         self.end_day = end_day
         return self.nav_df
     def get_analysis_table(self):
-        df_nav, df_return, df_drawdown = intermediate_df(self.nav_df, self.benchmark_code)
+        df_nav, df_return, df_drawdown = intermediate_df(self.nav_df)
         self.df_nav = df_nav
         self.df_return = df_return
         self.df_drawdown = df_drawdown
         overall_performance_table = calculate_overall_performance(df_nav, df_drawdown, df_return, self.freq)
-        annual_performance_table = calculate_annual_performance(df_nav, self.benchmark_code)
+        annual_performance_table = calculate_annual_performance(df_nav)
         monthly_performance_table = calculate_monthly_performance(df_nav)
         drawdown_table = calculate_drawdown(df_nav, df_drawdown, self.threshold)
         basic_info_table = pd.DataFrame(
             {
                 "基金产品": [self.fund_name],
-                "基准指数": [self.benchmark_name],
+                # "基准指数": [self.benchmark_name],
                 "净值起始日期": [self.start_day],
                 "净值结束日期": [self.end_day],
                 "单位净值": [
@@ -114,9 +114,9 @@ class NavResearch:
         table_html_five = self.table_list[4].to_html(
             index=False, classes="uniform-width"
         )
-        nav_line = get_nav_lines(self.df_nav, self.fund_name, self.benchmark_name)
+        nav_line = get_nav_lines(self.df_nav, self.fund_name)
         drawdown_line = get_drawdown_lines(
-            self.df_drawdown, self.fund_name, self.benchmark_name
+            self.df_drawdown, self.fund_name
         )
         html = f"""
             <html>
