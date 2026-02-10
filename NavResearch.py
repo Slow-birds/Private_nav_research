@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import os
 import copy
-from pathlib import Path
 from WindPy import w
 
 w.start()
@@ -24,17 +23,16 @@ class NavResearch:
     def __init__(
         self,
         nav_data_path,
-        strategy = "量化CTA",
-        fund_name = None,
-        benchmark_code = "NH0100.NHF",
-        benchmark_name = "南华商品指数",
-        threshold = -0.10,
+        strategy,
+        fund_name,
+        benchmark_code,
+        benchmark_name,
+        threshold,
         end_date_dt = datetime.datetime.now(),
     ):
         self.nav_data_path = nav_data_path
-        print(nav_data_path)
         self.strategy = strategy
-        self.fund_name = Path(nav_data_path).name.split('_')[1]
+        self.fund_name = fund_name
         self.benchmark_code = benchmark_code
         self.benchmark_name = benchmark_name
         self.freq = None
@@ -51,8 +49,8 @@ class NavResearch:
         freq = infer_frequency(original_df)
         nav_df = date_normalization(original_df, freq)
         nav_df = nav_df[(nav_df["date"] <= self.end_date_dt)]
-        start_day = nav_df["date"].min().strftime("%Y-%m-%d")
-        end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+        start_day = nav_df["date"].min().strftime("%Y%m%d")
+        end_day = nav_df["date"].max().strftime("%Y%m%d")
         self.freq = freq
         self.nav_df = nav_df
         self.start_day = start_day

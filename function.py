@@ -12,6 +12,7 @@ from datetime import timedelta
 from pandas_market_calendars import get_calendar
 from WindPy import w
 w.start()
+import akshare as ak
 
 # 读取数据
 def load_data(df_path: str) -> pd.DataFrame:
@@ -188,32 +189,41 @@ def date_normalization(nav_df, freq):
     end_date=pd.to_datetime(end_day) + pd.Timedelta(days=5),
     )
     if freq == "D":
-        nav_df = match_data(nav_df, trade_date)
+        # nav_df = match_data(nav_df, trade_date)
+        nav_df = match_data(nav_df, weekly_trade_date)
     else:  # freq is "W"
         nav_df = match_data(nav_df, weekly_trade_date)
     return nav_df
-
-# 基准数据
+# 基准数据(Wind)
 def benchmark_data(code, start_day, end_day):
-    error_code, benchmark_df = w.wsd(
-        code,
-        "close",
-        start_day,
-        end_day,
-        "Fill=Previous",
-        usedf=True,
-    )
-    benchmark_df.reset_index(inplace=True)
+    benchmark_df = ak.stock_zh_index_daily_em(symbol = code, start_date = start_day, end_date = end_day)
+    benchmark_df = benchmark_df[["date", "close"]].rename(columns={code: "close"})
     benchmark_df.columns = ["date", code]
     benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
     benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
     return benchmark_df
 
-# 中间变量
+# 基准数据(Wind)
+# def benchmark_data(code, start_day, end_day):
+#     error_code, benchmark_df = w.wsd(
+#         code,
+#         "close",
+#         start_day,
+#         end_day,
+#         "Fill=Previous",
+#         usedf=True,
+#     )
+#     benchmark_df.reset_index(inplace=True)
+#     benchmark_df.columns = ["date", code]
+#     benchmark_df["date"] = pd.to_datetime(benchmark_df["date"])
+#     benchmark_df[code] = benchmark_df[code] / benchmark_df[code].iloc[0]
+#     return benchmark_df
+
+# 中间变量（未剔除基准数据）
 def intermediate_df(nav_df, benchmark_code):
     # 获取基准数据、合并数据
-    start_day = nav_df["date"].min().strftime("%Y-%m-%d")
-    end_day = nav_df["date"].max().strftime("%Y-%m-%d")
+    start_day = nav_df["date"].min().strftime("%Y%m%d")
+    end_day = nav_df["date"].max().strftime("%Y%m%d")
     benchmark_df = benchmark_data(benchmark_code, start_day, end_day)
     df = pd.merge(nav_df, benchmark_df, on="date", how="left")
     # 辅助数据

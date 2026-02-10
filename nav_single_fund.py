@@ -2,8 +2,8 @@ from NavResearch import NavResearch
 
 data_path = r"C:\Users\yueku\Desktop\VScode\Private_nav_research\data\AHS76B_博普安兴私享一号B类_2026-01-05.csv"
 strategy = "主观多头"
-fund_name = "SP2"
-benchmark_code = "399852.SZ"
+fund_name = "博普安兴私享一号B类"
+benchmark_code = "sz399852"
 benchmark_name = "中证1000"
 threshold = -0.05
 
