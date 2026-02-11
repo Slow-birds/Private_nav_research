@@ -33,8 +33,8 @@ class NavResearch:
         self.nav_data_path = nav_data_path
         self.strategy = strategy
         self.fund_name = fund_name
-        self.benchmark_code = benchmark_code
-        self.benchmark_name = benchmark_name
+        # self.benchmark_code = benchmark_code
+        # self.benchmark_name = benchmark_name
         self.freq = None
         self.risk_free_rate = 0.02
         self.threshold = threshold

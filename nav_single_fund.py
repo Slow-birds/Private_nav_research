@@ -1,8 +1,8 @@
 from NavResearch import NavResearch
 
-data_path = r"C:\Users\yueku\Desktop\VScode\Private_nav_research\data\SN3221_宏锡量化CTA7号_2025-12-31.csv"
-strategy = "主观多头"
-fund_name = "博普安兴私享一号B类"
+data_path = r"E:\桌面文件\Vscode\Private_nav_research\data\SN3221_宏锡量化CTA7号_2025-12-31.csv"
+strategy = "量化CTA"
+fund_name = "宏锡量化CTA7号"
 benchmark_code = "sz399852"
 benchmark_name = "中证1000"
 threshold = -0.05
